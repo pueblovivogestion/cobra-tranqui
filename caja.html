@@ -123,9 +123,33 @@
   })();
   if (window.CAJA_NUBE_URL && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   if (window.CAJA_NUBE_URL && !NUBE) {
+    // Pantalla nueva sin vincular: se vincula con el código corto del panel del dueño (o escaneando el QR)
     setTimeout(() => {
-      document.getElementById('pinPantalla').innerHTML =
-        '<h1>Cobrá Tranqui</h1><p>Abrí el link de la caja que aparece en el panel del dueño (o escaneá su código QR).</p>';
+      const p = document.getElementById('pinPantalla');
+      p.innerHTML =
+        '<h1>Cobrá Tranqui</h1>' +
+        '<p style="max-width:420px">Esta es la <b>pantalla de caja</b>. Escribí el código que aparece en el panel del dueño, ' +
+        'en "Pantalla de caja" (o escaneá el QR con la cámara).</p>' +
+        '<input id="codigoCaja" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="K7M2QXPA" ' +
+        'style="text-transform:uppercase;letter-spacing:6px">' +
+        '<button id="vincular">Vincular esta caja</button><div id="error"></div>' +
+        '<p style="margin-top:28px"><a href="index.html" style="color:#7ee2a8">¿Sos el dueño? Entrá a tu panel</a></p>';
+      const ir = async () => {
+        const c = document.getElementById('codigoCaja').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const err = document.getElementById('error');
+        if (c.length !== 8) { err.textContent = 'El código tiene 8 letras y números.'; return; }
+        err.textContent = 'Vinculando…';
+        try {
+          const r = await fetch(window.CAJA_NUBE_URL + '?codigo=' + c);
+          const d = await r.json();
+          if (!d.ok) { err.textContent = d.error || 'Código incorrecto'; return; }
+          try { localStorage.setItem('tokenCaja', d.t); } catch (e) {}
+          location.replace('caja.html#t=' + d.t);
+          location.reload();
+        } catch (e) { err.textContent = 'Sin conexión. Probá de nuevo.'; }
+      };
+      document.getElementById('vincular').onclick = ir;
+      document.getElementById('codigoCaja').addEventListener('keydown', e => { if (e.key === 'Enter') ir(); });
     });
   }
   async function nubePost(cuerpo) {

@@ -33,6 +33,12 @@
   li .d { color:var(--sub); font-size:13px; } .oculto { display:none !important; }
   #qr { background:#fff; padding:10px; border-radius:10px; display:inline-block; margin-top:10px; }
   a { color:#7ee2a8; }
+  .opcion { display:flex; flex-direction:column; align-items:flex-start; gap:6px; width:100%; text-align:left; margin-bottom:14px;
+    padding:20px; border-radius:16px; border:1px solid var(--borde); background:var(--carta); color:var(--txt); font-weight:400; }
+  .opcion:hover { border-color:var(--ok2); }
+  .opcion .emoji { font-size:34px; } .opcion b { font-size:20px; } .opcion span { color:var(--sub); font-size:15px; line-height:1.4; }
+  .codigo { font-family:ui-monospace,monospace; font-size:34px; font-weight:800; letter-spacing:6px; background:#111815;
+    border:1px dashed var(--ok2); border-radius:12px; padding:12px 16px; display:inline-block; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -41,8 +47,24 @@
   <p class="sub">Cero comprobantes truchos. Tus empleados ven en vivo los cobros que entran a tus cuentas, sin capturas y sin claves.</p>
   <div id="mensaje" class="msg oculto"></div>
 
+  <!-- ¿Quién usa este aparato? -->
+  <section id="eleccion" class="oculto">
+    <h2 style="margin:8px 0 14px">¿Qué vas a hacer con este aparato?</h2>
+    <button class="opcion" id="elegirDueno">
+      <span class="emoji">📲</span>
+      <b>Soy el dueño</b>
+      <span>A mis cuentas les llegan las transferencias. Quiero conectar Mercado Pago y mis bancos, y configurar la caja.</span>
+    </button>
+    <button class="opcion" id="elegirCaja">
+      <span class="emoji">🧾</span>
+      <b>Es la caja del local</b>
+      <span>El empleado mira acá los cobros en vivo para no aceptar comprobantes truchos.</span>
+    </button>
+  </section>
+
   <!-- Ingreso -->
   <section id="ingreso" class="carta oculto">
+    <p class="sub" style="margin:0 0 6px"><a href="#" id="volverEleccion">← Volver</a></p>
     <h2>Entrar</h2>
     <label>Email</label><input id="email" type="email" autocomplete="email">
     <label>Contraseña</label><input id="clave" type="password" autocomplete="current-password">
@@ -83,14 +105,15 @@
 
     <div class="carta">
       <h2>3. Pantalla de caja</h2>
-      <p class="sub" style="margin:0">Abrí este link en la tablet, celular o PC de la caja (también iPhone). Agregalo a la pantalla de inicio. Quien tenga el link ve los cobros: compartilo solo con tus empleados.</p>
-      <label>Link de la caja</label><div id="linkCaja" class="link"></div>
+      <p class="sub" style="margin:0">En el celular, tablet o PC de la caja (también iPhone) abrí esta misma página, elegí <b>"Es la caja del local"</b> y escribí este código. O escaneá el QR. Compartilo solo con tus empleados.</p>
+      <label>Código de la caja</label><div id="codigoCaja" class="codigo"></div>
+      <label>Link directo</label><div id="linkCaja" class="link"></div>
       <div id="qr"></div>
       <div class="fila">
         <button id="btnCopiarCaja" class="sec">Copiar link</button>
         <button id="btnAbrirCaja" class="sec">Abrir caja</button>
         <button id="btnSimular" class="sec">Simular un cobro</button>
-        <button id="btnNuevoLink" class="sec">Generar link nuevo</button>
+        <button id="btnNuevoLink" class="sec">Cambiar código y link</button>
       </div>
     </div>
 
@@ -138,20 +161,35 @@
   };
   $('btnSalir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
 
+  const rol = { leer: () => { try { return localStorage.getItem('rol'); } catch (e) { return null; } },
+    poner: v => { try { v ? localStorage.setItem('rol', v) : localStorage.removeItem('rol'); } catch (e) {} } };
+  function mostrar(id) { ['eleccion', 'ingreso', 'panel'].forEach(s => $(s).classList.toggle('oculto', s !== id)); }
+
+  $('elegirDueno').onclick = () => { rol.poner('dueno'); mostrar('ingreso'); };
+  $('elegirCaja').onclick = () => { rol.poner('caja'); location.href = 'caja.html'; };
+  $('volverEleccion').onclick = e => { e.preventDefault(); rol.poner(null); mostrar('eleccion'); };
+
+  let iniciando = false, reloj = null;
   async function iniciar() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { $('ingreso').classList.remove('oculto'); $('panel').classList.add('oculto'); return; }
-    $('ingreso').classList.add('oculto'); $('panel').classList.remove('oculto');
-    let { data } = await sb.from('comercios').select('*').order('creado').limit(1);
-    if (!data || !data.length) {
-      const r = await sb.from('comercios').insert({ nombre: 'Mi comercio' }).select();
-      if (r.error) return mensaje('No pude crear el comercio: ' + r.error.message, false);
-      data = r.data;
-    }
-    com = data[0];
-    pintar();
-    refrescar();
-    setInterval(refrescar, 10000);
+    if (iniciando || com) return; // evita cargar dos veces a la vez (creaba comercios repetidos)
+    iniciando = true;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { mostrar(rol.leer() === 'dueno' ? 'ingreso' : 'eleccion'); return; }
+      rol.poner('dueno');
+      mostrar('panel');
+      let { data } = await sb.from('comercios').select('*').order('creado').limit(1);
+      if (!data || !data.length) {
+        const r = await sb.from('comercios').insert({ nombre: 'Mi comercio' }).select();
+        // Si otra pestaña lo creó al mismo tiempo, el índice único lo frena: lo volvemos a leer
+        data = r.error ? (await sb.from('comercios').select('*').order('creado').limit(1)).data : r.data;
+        if (!data || !data.length) return mensaje('No pude crear el comercio: ' + (r.error?.message || ''), false);
+      }
+      com = data[0];
+      pintar();
+      refrescar();
+      clearInterval(reloj); reloj = setInterval(refrescar, 10000);
+    } finally { iniciando = false; }
   }
 
   function linkCaja() {
@@ -166,6 +204,7 @@
     $('umbral').value = com.umbral; $('minutos').value = com.minutos_alerta;
     $('tokenAndroid').textContent = com.token_android;
     $('linkCaja').textContent = linkCaja();
+    $('codigoCaja').textContent = (com.codigo_caja || '').replace(/^(.{4})(.{4})$/, '$1 $2');
     const qr = qrcode(0, 'M'); qr.addData(linkCaja()); qr.make();
     $('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2 });
   }
@@ -223,11 +262,13 @@
     mensaje('Cobro de prueba enviado: tiene que aparecer en la caja.'); refrescar();
   };
   $('btnNuevoLink').onclick = async () => {
-    if (!confirm('El link actual deja de funcionar. ¿Seguro?')) return;
+    if (!confirm('Las cajas vinculadas se desconectan y hay que volver a vincularlas con el código nuevo. ¿Seguro?')) return;
     const nuevo = [...crypto.getRandomValues(new Uint8Array(18))].map(b => b.toString(16).padStart(2, '0')).join('');
-    const { data, error } = await sb.from('comercios').update({ token_caja: nuevo }).eq('id', com.id).select().single();
+    const { data: codigo } = await sb.rpc('nuevo_codigo_caja');
+    const cambios = { token_caja: nuevo }; if (codigo) cambios.codigo_caja = codigo;
+    const { data, error } = await sb.from('comercios').update(cambios).eq('id', com.id).select().single();
     if (error) return mensaje(error.message, false);
-    com = data; pintar(); mensaje('Link nuevo generado. Abrilo de nuevo en la caja.');
+    com = data; pintar(); mensaje('Código y link nuevos. Volvé a vincular las cajas.');
   };
 
   sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_IN' && !com) iniciar(); });
