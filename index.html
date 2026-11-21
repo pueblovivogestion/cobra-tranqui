@@ -72,6 +72,15 @@
       <button id="btnEntrar">Entrar</button>
       <button id="btnCrear" class="sec">Crear cuenta</button>
     </div>
+    <p class="sub" style="margin:14px 0 0"><a href="#" id="olvide">¿Olvidaste tu contraseña?</a></p>
+  </section>
+
+  <!-- Contraseña nueva (se llega desde el mail de recuperación) -->
+  <section id="nuevaClave" class="carta oculto">
+    <h2>Elegí una contraseña nueva</h2>
+    <label>Contraseña nueva</label><input id="clave1" type="password" autocomplete="new-password">
+    <label>Repetila</label><input id="clave2" type="password" autocomplete="new-password">
+    <div class="fila"><button id="btnGuardarClave">Guardar contraseña</button></div>
   </section>
 
   <!-- Panel -->
@@ -177,7 +186,29 @@
 
   const rol = { leer: () => { try { return localStorage.getItem('rol'); } catch (e) { return null; } },
     poner: v => { try { v ? localStorage.setItem('rol', v) : localStorage.removeItem('rol'); } catch (e) {} } };
-  function mostrar(id) { ['eleccion', 'ingreso', 'panel'].forEach(s => $(s).classList.toggle('oculto', s !== id)); }
+  function mostrar(id) { ['eleccion', 'ingreso', 'panel', 'nuevaClave'].forEach(s => $(s).classList.toggle('oculto', s !== id)); }
+
+  // ---------- Recuperar contraseña ----------
+  let recuperando = /type=recovery/.test(location.hash);
+  $('olvide').onclick = async e => {
+    e.preventDefault();
+    const email = $('email').value.trim() || prompt('¿Cuál es el email de tu cuenta?') || '';
+    if (!email.includes('@')) return mensaje('Escribí tu email arriba y volvé a tocar "¿Olvidaste tu contraseña?".', false);
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    if (error) return mensaje('No pude mandar el mail: ' + error.message, false);
+    mensaje('Te mandamos un mail a ' + email + ' con un link para elegir una contraseña nueva. Revisá también el spam.');
+  };
+  $('btnGuardarClave').onclick = async () => {
+    const a = $('clave1').value, b = $('clave2').value;
+    if (a.length < 6) return mensaje('La contraseña tiene que tener al menos 6 caracteres.', false);
+    if (a !== b) return mensaje('Las dos contraseñas no coinciden.', false);
+    const { error } = await sb.auth.updateUser({ password: a });
+    if (error) return mensaje('No pude cambiarla: ' + error.message, false);
+    recuperando = false;
+    history.replaceState(null, '', location.pathname);
+    mensaje('✅ Contraseña cambiada. Ya estás adentro.');
+    iniciar();
+  };
 
   $('elegirDueno').onclick = () => { rol.poner('dueno'); mostrar('ingreso'); };
   $('elegirCaja').onclick = () => { rol.poner('caja'); location.href = 'caja.html'; };
@@ -185,6 +216,7 @@
 
   let iniciando = false, reloj = null;
   async function iniciar() {
+    if (recuperando) { mostrar('nuevaClave'); return; }
     if (iniciando || com) return; // evita cargar dos veces a la vez (creaba comercios repetidos)
     iniciando = true;
     try {
@@ -290,7 +322,10 @@
     com = data; pintar(); mensaje('Código y link nuevos. Volvé a vincular las cajas.');
   };
 
-  sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_IN' && !com) iniciar(); });
+  sb.auth.onAuthStateChange((ev) => {
+    if (ev === 'PASSWORD_RECOVERY') { recuperando = true; mostrar('nuevaClave'); return; }
+    if (ev === 'SIGNED_IN' && !com) iniciar();
+  });
   iniciar();
 })();
 </script>
