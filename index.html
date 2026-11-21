@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cobrá Tranqui · Panel</title>
+<link rel="manifest" href="manifest-panel.webmanifest">
+<meta name="theme-color" content="#0f1412">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Caja">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<link rel="icon" href="iconos/favicon.png">
+<style>
+  :root { --ok:#0B6E4F; --ok2:#16a34a; --mal:#B3261E; --fondo:#0f1412; --carta:#1a211e; --borde:#2b3631; --txt:#eef3f0; --sub:#9fb0a8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--fondo); color:var(--txt); }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 48px; padding-top:max(24px, env(safe-area-inset-top)); }
+  h1 { font-size:26px; margin:0 0 4px; } h2 { font-size:18px; margin:0 0 10px; }
+  p.sub { color:var(--sub); margin:0 0 20px; }
+  .carta { background:var(--carta); border:1px solid var(--borde); border-radius:16px; padding:18px; margin-bottom:16px; }
+  label { display:block; font-size:14px; color:var(--sub); margin:12px 0 4px; }
+  input { width:100%; font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid var(--borde); background:#111815; color:var(--txt); }
+  button { font-size:16px; padding:11px 16px; border-radius:10px; border:0; background:var(--ok2); color:#fff; font-weight:700; cursor:pointer; }
+  button.sec { background:#2c3a33; } button.mp { background:#009ee3; }
+  .fila { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+  .estado { display:inline-block; padding:4px 10px; border-radius:999px; font-size:14px; background:#2c3a33; }
+  .estado.ok { background:#123d2c; color:#7ee2a8; } .estado.mal { background:#3f1513; color:#ff8a80; }
+  .link { word-break:break-all; background:#111815; border:1px solid var(--borde); border-radius:10px; padding:10px; font-family:ui-monospace,monospace; font-size:13px; }
+  .msg { padding:12px; border-radius:10px; margin-bottom:16px; } .msg.ok { background:#123d2c; } .msg.mal { background:#3f1513; }
+  ul { list-style:none; padding:0; margin:0; } li { display:flex; justify-content:space-between; gap:8px; padding:9px 0; border-bottom:1px solid var(--borde); }
+  li .d { color:var(--sub); font-size:13px; } .oculto { display:none !important; }
+  #qr { background:#fff; padding:10px; border-radius:10px; display:inline-block; margin-top:10px; }
+  a { color:#7ee2a8; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cobrá Tranqui</h1>
+  <p class="sub">Cero comprobantes truchos. Tus empleados ven en vivo los cobros que entran a tus cuentas, sin capturas y sin claves.</p>
+  <div id="mensaje" class="msg oculto"></div>
+
+  <!-- Ingreso -->
+  <section id="ingreso" class="carta oculto">
+    <h2>Entrar</h2>
+    <label>Email</label><input id="email" type="email" autocomplete="email">
+    <label>Contraseña</label><input id="clave" type="password" autocomplete="current-password">
+    <div class="fila">
+      <button id="btnEntrar">Entrar</button>
+      <button id="btnCrear" class="sec">Crear cuenta</button>
+    </div>
+  </section>
+
+  <!-- Panel -->
+  <section id="panel" class="oculto">
+    <div class="carta">
+      <h2 id="tituloComercio">Mi comercio</h2>
+      <label>Nombre del comercio</label><input id="nombre">
+      <label>Tus alias y CVU/CBU (separados por coma) — para detectar comprobantes a otra cuenta</label>
+      <input id="cuentas" placeholder="mi.alias.mp, 0000003100012345678901">
+      <div class="fila" style="gap:16px">
+        <div style="flex:1;min-width:140px"><label>Monto máximo para entregar con comprobante pendiente</label><input id="umbral" type="number"></div>
+        <div style="flex:1;min-width:140px"><label>Minutos para marcar "no llegó"</label><input id="minutos" type="number"></div>
+      </div>
+      <div class="fila"><button id="btnGuardar">Guardar</button></div>
+    </div>
+
+    <div class="carta">
+      <h2>1. Mercado Pago</h2>
+      <p class="sub" style="margin:0">Funciona con iPhone o Android y desde cualquier lugar.</p>
+      <div class="fila"><span id="estadoMp" class="estado">…</span></div>
+      <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
+    </div>
+
+    <div class="carta">
+      <h2>2. Otros bancos y billeteras (celular Android, opcional)</h2>
+      <p class="sub" style="margin:0">Si cobrás también en Ualá, Cuenta DNI, Galicia u otros: instalá la app Cobrá Tranqui en tu Android y pegá este código en "Vincular con la nube".</p>
+      <div class="fila"><span id="estadoAndroid" class="estado">…</span></div>
+      <label>Código de vinculación</label><div id="tokenAndroid" class="link"></div>
+      <div class="fila"><button id="btnCopiarAndroid" class="sec">Copiar código</button></div>
+    </div>
+
+    <div class="carta">
+      <h2>3. Pantalla de caja</h2>
+      <p class="sub" style="margin:0">Abrí este link en la tablet, celular o PC de la caja (también iPhone). Agregalo a la pantalla de inicio. Quien tenga el link ve los cobros: compartilo solo con tus empleados.</p>
+      <label>Link de la caja</label><div id="linkCaja" class="link"></div>
+      <div id="qr"></div>
+      <div class="fila">
+        <button id="btnCopiarCaja" class="sec">Copiar link</button>
+        <button id="btnAbrirCaja" class="sec">Abrir caja</button>
+        <button id="btnSimular" class="sec">Simular un cobro</button>
+        <button id="btnNuevoLink" class="sec">Generar link nuevo</button>
+      </div>
+    </div>
+
+    <div class="carta">
+      <h2>Últimos cobros</h2>
+      <ul id="cobros"></ul>
+    </div>
+
+    <div class="fila"><button id="btnSalir" class="sec">Cerrar sesión</button></div>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+(async () => {
+  const $ = id => document.getElementById(id);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  const fmt = n => '$ ' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+  const cuando = ts => new Date(ts).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  let com = null;
+
+  function mensaje(txt, ok = true) {
+    $('mensaje').textContent = txt; $('mensaje').className = 'msg ' + (ok ? 'ok' : 'mal');
+  }
+
+  // Vuelta desde Mercado Pago
+  const q = new URLSearchParams(location.search);
+  if (q.get('mp') === 'ok') mensaje('✅ Mercado Pago conectado. Ya podés abrir la caja.');
+  if (q.get('mp') === 'error') mensaje('No se pudo conectar Mercado Pago: ' + (q.get('detalle') || 'error desconocido'), false);
+  if (q.get('mp')) history.replaceState(null, '', location.pathname);
+
+  $('btnEntrar').onclick = async () => {
+    const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('clave').value });
+    if (error) mensaje('No pude entrar: ' + error.message, false); else iniciar();
+  };
+  $('btnCrear').onclick = async () => {
+    const { data, error } = await sb.auth.signUp({ email: $('email').value.trim(), password: $('clave').value,
+      options: { emailRedirectTo: location.origin + location.pathname } });
+    if (error) return mensaje('No pude crear la cuenta: ' + error.message, false);
+    if (!data.session) mensaje('Te mandamos un mail para confirmar la cuenta. Confirmalo y después entrá.');
+    else iniciar();
+  };
+  $('btnSalir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+  async function iniciar() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { $('ingreso').classList.remove('oculto'); $('panel').classList.add('oculto'); return; }
+    $('ingreso').classList.add('oculto'); $('panel').classList.remove('oculto');
+    let { data } = await sb.from('comercios').select('*').order('creado').limit(1);
+    if (!data || !data.length) {
+      const r = await sb.from('comercios').insert({ nombre: 'Mi comercio' }).select();
+      if (r.error) return mensaje('No pude crear el comercio: ' + r.error.message, false);
+      data = r.data;
+    }
+    com = data[0];
+    pintar();
+    refrescar();
+    setInterval(refrescar, 10000);
+  }
+
+  function linkCaja() {
+    const base = location.href.replace(/[#?].*$/, '').replace(/index\.html$/, '');
+    return base + 'caja.html#t=' + com.token_caja;
+  }
+
+  function pintar() {
+    $('tituloComercio').textContent = com.nombre;
+    $('nombre').value = com.nombre;
+    $('cuentas').value = (com.mis_cuentas || []).join(', ');
+    $('umbral').value = com.umbral; $('minutos').value = com.minutos_alerta;
+    $('tokenAndroid').textContent = com.token_android;
+    $('linkCaja').textContent = linkCaja();
+    const qr = qrcode(0, 'M'); qr.addData(linkCaja()); qr.make();
+    $('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2 });
+  }
+
+  async function refrescar() {
+    const { data: mp } = await sb.rpc('estado_mp', { p_comercio: com.id });
+    const e = mp && mp[0];
+    const el = $('estadoMp');
+    if (!e || !e.conectado) { el.textContent = 'No conectado'; el.className = 'estado'; $('btnMp').textContent = 'Conectar con Mercado Pago'; }
+    else if (e.ultimo_error) { el.textContent = '⚠️ ' + e.ultimo_error; el.className = 'estado mal'; $('btnMp').textContent = 'Volver a conectar'; }
+    else { el.textContent = '✅ Conectado' + (e.mp_nickname ? ' como ' + e.mp_nickname : ''); el.className = 'estado ok'; $('btnMp').textContent = 'Volver a conectar'; }
+
+    const { data: an } = await sb.from('android_estado').select('ultimo_ping').eq('comercio_id', com.id).maybeSingle();
+    const ea = $('estadoAndroid');
+    if (!an) { ea.textContent = 'Sin vincular'; ea.className = 'estado'; }
+    else if (Date.now() - new Date(an.ultimo_ping).getTime() < 3 * 60000) { ea.textContent = '✅ Celular conectado'; ea.className = 'estado ok'; }
+    else { ea.textContent = '⚠️ Último contacto ' + cuando(an.ultimo_ping); ea.className = 'estado mal'; }
+
+    const { data: cobros } = await sb.from('cobros').select('monto, pagador, origen, ts, prueba').eq('comercio_id', com.id)
+      .order('ts', { ascending: false }).limit(15);
+    const ul = $('cobros'); ul.innerHTML = '';
+    if (!cobros || !cobros.length) ul.innerHTML = '<li><span class="d">Todavía no entró ningún cobro.</span></li>';
+    (cobros || []).forEach(c => {
+      const li = document.createElement('li');
+      const a = document.createElement('div'); a.textContent = (c.pagador || 'Sin nombre') + (c.prueba ? ' (prueba)' : '');
+      const d = document.createElement('div'); d.className = 'd'; d.textContent = c.origen + ' · ' + cuando(c.ts); a.append(d);
+      const m = document.createElement('div'); m.textContent = fmt(c.monto);
+      li.append(a, m); ul.append(li);
+    });
+  }
+
+  $('btnGuardar').onclick = async () => {
+    const cambios = {
+      nombre: $('nombre').value.trim() || 'Mi comercio',
+      mis_cuentas: $('cuentas').value.split(/[,;\n]/).map(s => s.trim()).filter(Boolean),
+      umbral: Number($('umbral').value) || 0, minutos_alerta: Math.max(1, Number($('minutos').value) || 15),
+    };
+    const { data, error } = await sb.from('comercios').update(cambios).eq('id', com.id).select().single();
+    if (error) return mensaje('No pude guardar: ' + error.message, false);
+    com = data; pintar(); mensaje('Guardado.');
+  };
+
+  $('btnMp').onclick = async () => {
+    const { data, error } = await sb.functions.invoke('mp-conectar', { body: { comercio_id: com.id } });
+    if (error || !data?.ok) return mensaje('No pude iniciar la conexión: ' + (data?.error || error?.message), false);
+    location.href = data.url;
+  };
+
+  const copiar = async (t, quien) => { try { await navigator.clipboard.writeText(t); mensaje(quien + ' copiado.'); } catch (e) { prompt('Copialo:', t); } };
+  $('btnCopiarAndroid').onclick = () => copiar(com.token_android, 'Código');
+  $('btnCopiarCaja').onclick = () => copiar(linkCaja(), 'Link');
+  $('btnAbrirCaja').onclick = () => window.open(linkCaja(), '_blank');
+  $('btnSimular').onclick = async () => {
+    await fetch(window.CAJA_NUBE_URL + '?t=' + com.token_caja, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'simular' }) });
+    mensaje('Cobro de prueba enviado: tiene que aparecer en la caja.'); refrescar();
+  };
+  $('btnNuevoLink').onclick = async () => {
+    if (!confirm('El link actual deja de funcionar. ¿Seguro?')) return;
+    const nuevo = [...crypto.getRandomValues(new Uint8Array(18))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const { data, error } = await sb.from('comercios').update({ token_caja: nuevo }).eq('id', com.id).select().single();
+    if (error) return mensaje(error.message, false);
+    com = data; pintar(); mensaje('Link nuevo generado. Abrilo de nuevo en la caja.');
+  };
+
+  sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_IN' && !com) iniciar(); });
+  iniciar();
+})();
+</script>
+</body>
+</html>

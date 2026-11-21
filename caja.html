@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cobrá Tranqui</title>
+<!-- Para instalarla como app (versión nube). En el celular Android estos archivos no existen y no pasa nada. -->
+<link rel="manifest" href="manifest-caja.webmanifest">
+<meta name="theme-color" content="#0f1412">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Caja">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<link rel="icon" href="iconos/favicon.png">
+<style>
+  :root { --ok:#0B6E4F; --ok2:#16a34a; --mal:#B3261E; --fondo:#0f1412; --carta:#1a211e; --txt:#eef3f0; --sub:#9fb0a8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--fondo); color:var(--txt); }
+  .oculto { display:none !important; }
+  #pinPantalla { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:16px; text-align:center; }
+  #pinPantalla input { font-size:40px; width:240px; text-align:center; letter-spacing:8px; padding:10px; border-radius:12px; border:2px solid #34413b; background:var(--carta); color:var(--txt); }
+  button { font-size:20px; padding:14px 22px; border-radius:12px; border:0; background:var(--ok2); color:#fff; font-weight:700; cursor:pointer; }
+  #error { color:#ff8a80; min-height:1.2em; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; padding-top:max(12px, env(safe-area-inset-top)); background:#141a17; gap:8px; flex-wrap:wrap; }
+  header b { font-size:18px; }
+  #estado { font-size:14px; padding:6px 10px; border-radius:999px; background:#123d2c; }
+  #estado.mal { background:var(--mal); }
+  #alerta { background:var(--mal); color:#fff; padding:14px 16px; font-size:18px; font-weight:700; text-align:center; }
+  #ultimo { margin:16px; padding:28px 16px; border-radius:20px; background:var(--carta); text-align:center; transition:background .3s; }
+  #ultimo.nuevo { background:var(--ok2); animation:latido 1s ease 3; }
+  @keyframes latido { 50% { transform:scale(1.02); } }
+  #ultimo .chico { font-size:18px; color:var(--sub); }
+  #ultimo.nuevo .chico { color:#e8fff0; }
+  #ultimo .monto { font-size:64px; font-weight:800; line-height:1.1; margin:8px 0; word-break:break-word; }
+  #ultimo .quien { font-size:24px; }
+  #resumen { display:flex; gap:12px; margin:0 16px; }
+  #resumen div { flex:1; background:var(--carta); border-radius:14px; padding:12px; text-align:center; }
+  #resumen span { display:block; font-size:13px; color:var(--sub); }
+  #resumen strong { font-size:24px; }
+  h2 { font-size:15px; color:var(--sub); margin:20px 16px 6px; font-weight:600; }
+  ul { list-style:none; margin:0; padding:0 16px 24px; }
+  li { display:flex; justify-content:space-between; gap:10px; padding:12px 0; border-bottom:1px solid #26302b; }
+  li .m { font-weight:700; font-size:18px; white-space:nowrap; }
+  li .d { color:var(--sub); font-size:14px; }
+  .prueba { background:#5b4b00; color:#ffe58a; font-size:12px; padding:2px 6px; border-radius:6px; margin-left:6px; }
+  footer { text-align:center; color:var(--sub); font-size:14px; padding:0 16px 24px; }
+  #sonido { margin:0 16px 8px; width:calc(100% - 32px); background:#2c3a33; font-size:17px; }
+  #foto { margin:0 16px 12px; width:calc(100% - 32px); background:#b7791f; font-size:19px; }
+  .pend { margin:0 16px 10px; padding:14px; border-radius:14px; background:#3d3210; border-left:6px solid #e0a526; }
+  .pend.demorado { background:#3f1513; border-left-color:#ff6b5e; }
+  .pend.ok { background:#123d2c; border-left-color:#22c55e; }
+  .pend .fila { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+  .pend .m { font-size:24px; font-weight:800; white-space:nowrap; }
+  .pend .e { font-weight:700; font-size:14px; }
+  .pend .d { color:var(--sub); font-size:14px; margin-top:4px; }
+  .pend .acc { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+  .pend .acc button, #modal .acc button { font-size:15px; padding:9px 14px; background:#2c3a33; }
+  #modal { position:fixed; inset:0; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10; }
+  #modal .caja { background:var(--carta); border-radius:18px; padding:20px; width:100%; max-width:460px; max-height:90vh; overflow:auto; }
+  #modal .m { font-size:44px; font-weight:800; text-align:center; margin:6px 0; }
+  #modal .decision { padding:14px; border-radius:12px; font-weight:800; font-size:19px; text-align:center; margin:12px 0; }
+  .dec-ok { background:#16a34a; } .dec-esperar { background:#b7791f; } .dec-no { background:#B3261E; }
+  .al { padding:8px 10px; border-radius:8px; margin:6px 0; font-size:15px; }
+  .al.rojo { background:#5a1a17; } .al.amarillo { background:#4a3b0c; }
+  #modal .acc { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:12px; }
+  #modal .nota { color:var(--sub); font-size:13px; text-align:center; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<section id="pinPantalla">
+  <h1>Cobrá Tranqui</h1>
+  <p>Ingresá el PIN que aparece en el celular del dueño</p>
+  <input id="pin" inputmode="numeric" maxlength="6" autocomplete="off">
+  <button id="entrar">Entrar</button>
+  <div id="error"></div>
+</section>
+
+<section id="caja" class="oculto">
+  <header>
+    <b id="nombreComercio">Cobrá Tranqui</b>
+    <span id="estado">Conectando…</span>
+  </header>
+  <div id="avisos" class="oculto" style="background:#4a3b0c;color:#ffe58a;padding:10px 16px;font-size:15px;text-align:center"></div>
+  <div id="alerta" class="oculto">⚠️ SIN CONEXIÓN con el celular del dueño. NO aceptes capturas ni comprobantes hasta que vuelva.</div>
+  <div id="ultimo">
+    <div class="chico">Esperando cobros…</div>
+    <div class="monto">—</div>
+    <div class="quien"></div>
+  </div>
+  <button id="sonido">🔈 Tocá para activar el aviso por voz</button>
+  <button id="foto">📷 Me muestran un comprobante</button>
+  <input id="archivo" type="file" accept="image/*" capture="environment" class="oculto">
+  <div id="pendientesBox" class="oculto">
+    <h2>Comprobantes pendientes</h2>
+    <div id="pendientes"></div>
+  </div>
+  <div id="resumen">
+    <div><span>Cobros de hoy</span><strong id="cant">0</strong></div>
+    <div><span>Total de hoy</span><strong id="total">$ 0</strong></div>
+  </div>
+  <h2>Hoy</h2>
+  <ul id="lista"></ul>
+  <footer>Si el pago no aparece acá, <b>no entró</b>. Un comprobante solo queda <b>pendiente</b> hasta que la plata llegue.</footer>
+</section>
+
+<div id="modal" class="oculto"><div class="caja" id="modalCaja"></div></div>
+
+<script src="config.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  // Modo NUBE: la página se sirve desde internet (config.js define CAJA_NUBE_URL) y el link trae #t=TOKEN.
+  // Modo LOCAL: la sirve el celular Android o la PC, con PIN.
+  const NUBE = (() => {
+    if (!window.CAJA_NUBE_URL) return null;
+    // El link trae #t=TOKEN. Lo guardamos para que funcione al abrirla desde el ícono de la pantalla de inicio.
+    const m = location.hash.match(/t=([a-f0-9]{20,})/);
+    let t = m ? m[1] : null;
+    try { if (t) localStorage.setItem('tokenCaja', t); else t = localStorage.getItem('tokenCaja'); } catch (e) {}
+    return t ? { url: window.CAJA_NUBE_URL, t } : null;
+  })();
+  if (window.CAJA_NUBE_URL && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (window.CAJA_NUBE_URL && !NUBE) {
+    setTimeout(() => {
+      document.getElementById('pinPantalla').innerHTML =
+        '<h1>Cobrá Tranqui</h1><p>Abrí el link de la caja que aparece en el panel del dueño (o escaneá su código QR).</p>';
+    });
+  }
+  async function nubePost(cuerpo) {
+    const r = await fetch(NUBE.url + '?t=' + NUBE.t, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+    return r.json();
+  }
+  let sinFuentes = false;
+  const fmt = n => '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const hora = ts => new Date(ts).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  const leer = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+  let pin = leer('pin') || '';
+  let ultimoSeq = -1;
+  let pagos = [];
+  let ultimoOk = 0;
+  let voz = false;
+  let dia = new Date().toDateString();
+  let pendientes = [];
+  let estadosPrev = null;
+  let umbral = 20000;
+  let minutos = 15;
+  let desfase = 0; // reloj del celular del dueño - reloj de esta pantalla
+
+  function decir(texto) {
+    if (!voz || !('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(texto); u.lang = 'es-AR'; speechSynthesis.speak(u);
+  }
+
+  function hablar(p) {
+    if (!voz || !('speechSynthesis' in window)) return;
+    const quien = p.pagador ? ' de ' + p.pagador : '';
+    const u = new SpeechSynthesisUtterance('Entró: ' + Math.round(p.monto) + ' pesos' + quien);
+    u.lang = 'es-AR';
+    speechSynthesis.speak(u);
+  }
+
+  function pitido() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.25, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      o.start(); o.stop(ctx.currentTime + 0.5);
+    } catch (e) {}
+  }
+
+  function mostrarUltimo(p, nuevo) {
+    const el = $('ultimo');
+    el.querySelector('.chico').textContent = (nuevo ? '✅ COBRO RECIBIDO · ' : 'Último cobro · ') + p.origen + ' · ' + hora(p.ts);
+    el.querySelector('.monto').textContent = fmt(p.monto);
+    el.querySelector('.quien').innerHTML = '';
+    el.querySelector('.quien').textContent = p.pagador ? 'de ' + p.pagador : '';
+    if (p.prueba) { const s = document.createElement('span'); s.className = 'prueba'; s.textContent = 'PRUEBA'; el.querySelector('.quien').appendChild(s); }
+    if (nuevo) {
+      el.classList.remove('nuevo'); void el.offsetWidth; el.classList.add('nuevo');
+      clearTimeout(mostrarUltimo.t); mostrarUltimo.t = setTimeout(() => el.classList.remove('nuevo'), 15000);
+    }
+  }
+
+  function render() {
+    const reales = pagos.filter(p => !p.prueba);
+    $('cant').textContent = reales.length;
+    $('total').textContent = fmt(reales.reduce((a, p) => a + p.monto, 0));
+    const ul = $('lista'); ul.innerHTML = '';
+    [...pagos].reverse().forEach(p => {
+      const li = document.createElement('li');
+      const izq = document.createElement('div');
+      const nombre = document.createElement('div'); nombre.textContent = p.pagador || 'Sin nombre';
+      if (p.prueba) { const s = document.createElement('span'); s.className = 'prueba'; s.textContent = 'PRUEBA'; nombre.appendChild(s); }
+      const det = document.createElement('div'); det.className = 'd'; det.textContent = p.origen + ' · ' + hora(p.ts);
+      izq.append(nombre, det);
+      const m = document.createElement('div'); m.className = 'm'; m.textContent = fmt(p.monto);
+      li.append(izq, m); ul.appendChild(li);
+    });
+  }
+
+  async function consultar() {
+    if (!pin && !NUBE) return;
+    if (new Date().toDateString() !== dia) { dia = new Date().toDateString(); pagos = []; ultimoSeq = -1; }
+    try {
+      const r = await fetch(NUBE ? NUBE.url + '?t=' + NUBE.t + '&desde=' + ultimoSeq
+        : '/api/pagos?pin=' + encodeURIComponent(pin) + '&desde=' + ultimoSeq, { cache: 'no-store' });
+      const d = await r.json();
+      if (!d.ok) {
+        if (r.status === 403 || r.status === 429) { salir(d.error || 'PIN incorrecto'); return; }
+        throw new Error(d.error);
+      }
+      sinFuentes = !!d.sinFuentes;
+      if (d.comercio) $('nombreComercio').textContent = d.comercio;
+      $('avisos').textContent = (d.avisos || []).join(' · ');
+      $('avisos').classList.toggle('oculto', !(d.avisos || []).length);
+      const primera = ultimoSeq < 0;
+      const vinculados = new Set((d.pendientes || []).map(x => x.pagoId).filter(Boolean));
+      d.pagos.forEach(p => {
+        if (pagos.some(x => x.id === p.id)) return;
+        pagos.push(p);
+        if (!primera) { mostrarUltimo(p, true); pitido(); if (!vinculados.has(p.id)) hablar(p); }
+      });
+      umbral = d.umbral ?? umbral;
+      minutos = d.minutosAlerta ?? minutos;
+      $('foto').classList.toggle('oculto', d.fotos === false);
+      desfase = d.ahora - Date.now();
+      actualizarPendientes(d.pendientes || []);
+      if (primera && pagos.length) mostrarUltimo(pagos[pagos.length - 1], false);
+      ultimoSeq = d.ultimoSeq;
+      ultimoOk = Date.now();
+      render();
+    } catch (e) { /* se refleja en el indicador de conexión */ }
+    actualizarEstado();
+  }
+
+  function actualizarEstado() {
+    const ok = Date.now() - ultimoOk < (NUBE ? 12000 : 6000) && !sinFuentes;
+    $('estado').textContent = ok ? '● En vivo' : '● Sin conexión';
+    $('estado').classList.toggle('mal', !ok);
+    $('alerta').classList.toggle('oculto', ok || ultimoOk === 0 && Date.now() - inicio < 6000);
+  }
+
+  // ---------- Comprobantes pendientes ----------
+  const api = (ruta, extra = '') => '/api/' + ruta + '?pin=' + encodeURIComponent(pin) + extra;
+  const hace = ts => { const m = Math.max(0, Math.round((Date.now() + desfase - ts) / 60000)); return m < 1 ? 'recién' : 'hace ' + m + ' min'; };
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+
+  function actualizarPendientes(lista) {
+    if (estadosPrev) {
+      lista.forEach(p => {
+        const antes = estadosPrev[p.id];
+        if (antes === 'ESPERANDO' && p.estado === 'ACREDITADO') {
+          pitido();
+          decir('Se acreditó el comprobante de ' + Math.round(p.monto || 0) + ' pesos' + (p.pagador ? ' de ' + p.pagador : ''));
+        }
+      });
+    }
+    estadosPrev = Object.fromEntries(lista.map(p => [p.id, p.estado]));
+    pendientes = lista;
+    renderPendientes();
+  }
+
+  function renderPendientes() {
+    const caja = $('pendientes'); caja.innerHTML = '';
+    // Mostrar: esperando (todos) + acreditados en los últimos 10 minutos
+    const ahora = Date.now() + desfase;
+    const vis = pendientes.filter(p => p.estado === 'ESPERANDO' || (p.estado === 'ACREDITADO' && ahora - (p.acreditadoTs || 0) < 10 * 60000));
+    $('pendientesBox').classList.toggle('oculto', vis.length === 0);
+    vis.forEach(p => {
+      const ok = p.estado === 'ACREDITADO';
+      const div = el('div', 'pend' + (ok ? ' ok' : p.demorado ? ' demorado' : ''));
+      const fila = el('div', 'fila');
+      fila.append(el('div', 'm', p.monto != null ? fmt(p.monto) : 'Monto sin leer'),
+        el('div', 'e', ok ? '✅ ACREDITADO' : p.demorado ? '⛔ NO LLEGÓ (' + hace(p.ts) + ')' : '⏳ ESPERANDO · ' + hace(p.ts)));
+      div.append(fila, el('div', 'd', (p.pagador || 'Sin nombre') + (p.coelsaId ? ' · COELSA ' + p.coelsaId.slice(0, 8) + '…' : '')));
+      if (!ok) {
+        const acc = el('div', 'acc');
+        const corr = el('button', null, 'Corregir monto'); corr.onclick = () => corregir(p);
+        const desc = el('button', null, 'Descartar'); desc.onclick = () => descartar(p);
+        acc.append(corr, desc); div.append(acc);
+      }
+      caja.append(div);
+    });
+  }
+
+  async function corregir(p) {
+    const v = prompt('Monto correcto (sin puntos, ej. 12500):', p.monto != null ? Math.round(p.monto) : '');
+    if (!v) return;
+    const n = Number(String(v).replace(/\./g, '').replace(',', '.'));
+    if (!(n > 0)) { alert('Monto inválido'); return; }
+    if (NUBE) await nubePost({ accion: 'monto', id: p.id, monto: n }).catch(() => {});
+    else await fetch(api('pendiente/monto', '&id=' + encodeURIComponent(p.id) + '&monto=' + encodeURIComponent(String(n).replace('.', ','))), { method: 'POST' }).catch(() => {});
+    cerrarModal(); consultar();
+  }
+
+  async function descartar(p) {
+    if (!confirm('¿Descartar este comprobante? (por ejemplo, si el cliente pagó de otra forma)')) return;
+    if (NUBE) await nubePost({ accion: 'descartar', id: p.id }).catch(() => {});
+    else await fetch(api('pendiente/descartar', '&id=' + encodeURIComponent(p.id)), { method: 'POST' }).catch(() => {});
+    cerrarModal(); consultar();
+  }
+
+  function cerrarModal() { $('modal').classList.add('oculto'); }
+
+  function abrirModal(nodos) {
+    const c = $('modalCaja'); c.innerHTML = ''; nodos.forEach(n => c.append(n));
+    $('modal').classList.remove('oculto');
+  }
+
+  function decision(p) {
+    const rojas = (p.alertas || []).filter(a => a.nivel === 'rojo');
+    if (p.estado === 'ACREDITADO') return ['dec-ok', '✅ La plata YA entró. Podés entregar.'];
+    if (rojas.length) return ['dec-no', '🚫 NO entregues. Hay algo raro en el comprobante.'];
+    if (p.monto != null && p.monto <= umbral) return ['dec-esperar', '⏳ Monto bajo: podés entregar. Queda PENDIENTE y te aviso cuando entre.'];
+    return ['dec-no', '✋ Esperá a que se acredite antes de entregar (más de ' + fmt(umbral) + ').'];
+  }
+
+  function mostrarResultado(p) {
+    const [cls, txt] = decision(p);
+    const nodos = [
+      el('div', 'chico', 'Comprobante leído' + (p.pagador ? ' · ' + p.pagador : '')),
+      el('div', 'm', p.monto != null ? fmt(p.monto) : 'Monto sin leer'),
+      el('div', 'decision ' + cls, txt),
+    ];
+    (p.alertas || []).forEach(a => nodos.push(el('div', 'al ' + a.nivel, (a.nivel === 'rojo' ? '🔴 ' : '🟡 ') + a.texto)));
+    const acc = el('div', 'acc');
+    const listo = el('button', null, 'Listo'); listo.onclick = cerrarModal;
+    acc.append(listo);
+    if (p.estado === 'ESPERANDO') {
+      const corr = el('button', null, 'Corregir monto'); corr.onclick = () => corregir(p);
+      const desc = el('button', null, 'Descartar'); desc.onclick = () => descartar(p);
+      acc.append(corr, desc);
+    }
+    nodos.push(acc, el('div', 'nota', 'Una foto NO prueba el pago. Solo cuenta cuando la plata aparece acreditada.'));
+    abrirModal(nodos);
+  }
+
+  async function achicar(file) {
+    const img = await new Promise((ok, mal) => { const i = new Image(); i.onload = () => ok(i); i.onerror = mal; i.src = URL.createObjectURL(file); });
+    const max = 1600, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(img.src);
+    return await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+  }
+
+  $('foto').onclick = () => $('archivo').click();
+  $('archivo').onchange = async () => {
+    const f = $('archivo').files[0]; $('archivo').value = '';
+    if (!f) return;
+    const nota = el('div', 'nota', 'Leyendo el comprobante…');
+    abrirModal([el('div', 'm', '⏳'), nota]);
+    try {
+      const blob = await achicar(f);
+      let d;
+      if (NUBE) {
+        // En la nube el texto se lee en este mismo aparato (Tesseract), así anda igual en iPhone
+        if (!window.Tesseract) await new Promise((ok, mal) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+          s.onload = ok; s.onerror = () => mal(new Error('No se pudo cargar el lector de texto (¿hay internet?)'));
+          document.head.appendChild(s);
+        });
+        const res = await Tesseract.recognize(blob, 'spa', {
+          logger: m => { if (m.status === 'recognizing text') nota.textContent = 'Leyendo el comprobante… ' + Math.round(m.progress * 100) + '%'; },
+        });
+        const foto = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(blob); });
+        nota.textContent = 'Revisando…';
+        d = await nubePost({ accion: 'comprobante', texto: res.data.text, foto });
+      } else {
+        const r = await fetch(api('comprobante'), { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
+        d = await r.json();
+      }
+      if (!d.ok) throw new Error(d.error || 'Error');
+      umbral = d.umbral ?? umbral;
+      mostrarResultado(d.pendiente);
+      consultar();
+    } catch (e) {
+      const listo = el('button', null, 'Cerrar'); listo.onclick = cerrarModal;
+      const acc = el('div', 'acc'); acc.append(listo);
+      abrirModal([el('div', 'decision dec-no', 'No pude leer la foto'), el('div', 'nota', String(e.message || e)), acc]);
+    }
+  };
+  setInterval(renderPendientes, 15000); // refresca los "hace X min"
+
+  let inicio = Date.now();
+  let timer = null;
+  function arrancar() {
+    $('pinPantalla').classList.add('oculto');
+    $('caja').classList.remove('oculto');
+    inicio = Date.now();
+    consultar();
+    clearInterval(timer);
+    timer = setInterval(consultar, NUBE ? 3000 : 1500);
+  }
+
+  function salir(msg) {
+    clearInterval(timer);
+    pin = ''; guardar('pin', '');
+    $('caja').classList.add('oculto');
+    $('pinPantalla').classList.remove('oculto');
+    $('error').textContent = msg;
+  }
+
+  $('entrar').onclick = () => { pin = $('pin').value.trim(); guardar('pin', pin); $('error').textContent = ''; ultimoSeq = -1; pagos = []; arrancar(); };
+  $('pin').addEventListener('keydown', e => { if (e.key === 'Enter') $('entrar').click(); });
+  $('sonido').onclick = () => {
+    voz = true;
+    $('sonido').textContent = '🔊 Aviso por voz activado';
+    if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance('Aviso activado'); u.lang = 'es-AR'; speechSynthesis.speak(u); }
+  };
+
+  if (NUBE || pin) arrancar();
+})();
+</script>
+</body>
+</html>
