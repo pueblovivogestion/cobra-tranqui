@@ -122,7 +122,14 @@
       <ul id="cobros"></ul>
     </div>
 
-    <div class="fila"><button id="btnSalir" class="sec">Cerrar sesión</button></div>
+    <div class="carta">
+      <h2>Este aparato</h2>
+      <p class="sub" style="margin:0">¿Vas a dejar este celular o tablet en el mostrador? Pasalo a modo caja. Para volver a tu panel, en la caja tocá "Cambiar de modo".</p>
+      <div class="fila">
+        <button id="btnModoCaja" class="sec">🧾 Usar este aparato como caja</button>
+        <button id="btnSalir" class="sec">Cerrar sesión</button>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -159,7 +166,14 @@
     if (!data.session) mensaje('Te mandamos un mail para confirmar la cuenta. Confirmalo y después entrá.');
     else iniciar();
   };
-  $('btnSalir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+  $('btnSalir').onclick = async () => { await sb.auth.signOut(); rol.poner(null); location.reload(); };
+  $('btnModoCaja').onclick = async () => {
+    if (!confirm('Este aparato va a mostrar la caja. Se cierra tu sesión de dueño para que el empleado no pueda tocar la configuración. ¿Seguimos?')) return;
+    const destino = linkCaja();
+    await sb.auth.signOut();
+    rol.poner('caja');
+    location.href = destino;
+  };
 
   const rol = { leer: () => { try { return localStorage.getItem('rol'); } catch (e) { return null; } },
     poner: v => { try { v ? localStorage.setItem('rol', v) : localStorage.removeItem('rol'); } catch (e) {} } };
@@ -175,7 +189,12 @@
     iniciando = true;
     try {
       const { data: { session } } = await sb.auth.getSession();
-      if (!session) { mostrar(rol.leer() === 'dueno' ? 'ingreso' : 'eleccion'); return; }
+      if (!session) {
+        // Aparato ya vinculado como caja: va directo a la caja (desde ahí se puede cambiar de modo)
+        let vinculada = false; try { vinculada = !!localStorage.getItem('tokenCaja'); } catch (e) {}
+        if (rol.leer() === 'caja' && vinculada) { location.replace('caja.html'); return; }
+        mostrar(rol.leer() === 'dueno' ? 'ingreso' : 'eleccion'); return;
+      }
       rol.poner('dueno');
       mostrar('panel');
       let { data } = await sb.from('comercios').select('*').order('creado').limit(1);

@@ -102,7 +102,9 @@
   </div>
   <h2>Hoy</h2>
   <ul id="lista"></ul>
-  <footer>Si el pago no aparece acá, <b>no entró</b>. Un comprobante solo queda <b>pendiente</b> hasta que la plata llegue.</footer>
+  <footer>Si el pago no aparece acá, <b>no entró</b>. Un comprobante solo queda <b>pendiente</b> hasta que la plata llegue.
+    <p id="cambiarModo" class="oculto" style="margin-top:18px"><a href="#" style="color:#9fb0a8">Cambiar de modo (pasar a dueño o desvincular esta caja)</a></p>
+  </footer>
 </section>
 
 <div id="modal" class="oculto"><div class="caja" id="modalCaja"></div></div>
@@ -439,6 +441,16 @@
     $('sonido').textContent = '🔊 Aviso por voz activado';
     if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance('Aviso activado'); u.lang = 'es-AR'; speechSynthesis.speak(u); }
   };
+
+  if (NUBE) {
+    $('cambiarModo').classList.remove('oculto');
+    $('cambiarModo').querySelector('a').onclick = e => {
+      e.preventDefault();
+      if (!confirm('Esta pantalla deja de mostrar la caja. Para volver a usarla como caja vas a necesitar el código del dueño. ¿Seguimos?')) return;
+      try { localStorage.removeItem('tokenCaja'); localStorage.removeItem('rol'); } catch (err) {}
+      location.href = 'index.html';
+    };
+  }
 
   if (NUBE || pin) arrancar();
 })();
