@@ -58,7 +58,8 @@
   .dia-sem .barra { height:14px; background:#2c3a33; border-radius:7px; overflow:hidden; }
   .dia-sem .barra i { display:block; height:100%; background:var(--ok2); border-radius:7px; }
   .dia-sem.mejor b { color:#7ee2a8; } .dia-sem.peor b { color:#ff8a80; }
-  .calor { display:grid; grid-template-columns:34px repeat(24, 1fr); gap:2px; font-size:10px; color:var(--sub); }
+  .calor { display:grid; grid-template-columns:30px repeat(24, minmax(0, 1fr)); gap:2px; font-size:10px; color:var(--sub); width:100%; }
+  .calor .h { overflow:visible; white-space:nowrap; }
   .calor .c { aspect-ratio:1; border-radius:2px; background:#16a34a; }
   .calor .h { text-align:center; }
   label.check { display:flex; gap:10px; align-items:center; color:var(--txt); font-size:16px; }
