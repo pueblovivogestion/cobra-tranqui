@@ -59,6 +59,11 @@
   details.carta summary span { color:var(--sub); font-size:14px; }
   details.carta[open] summary { margin-bottom:10px; }
   .pasos { color:var(--sub); padding-left:20px; line-height:1.6; margin:8px 0; }
+  .paso { display:flex; gap:12px; align-items:flex-start; margin:12px 0; line-height:1.5; }
+  .paso > span { flex:none; width:28px; height:28px; border-radius:50%; background:var(--ok2); color:#fff; font-weight:800;
+    display:flex; align-items:center; justify-content:center; }
+  .boton-link { display:inline-block; margin-top:8px; background:var(--ok2); color:#fff; text-decoration:none; font-weight:700;
+    padding:10px 14px; border-radius:10px; }
   .pesos { display:flex; align-items:center; gap:8px; } .pesos span { font-size:20px; font-weight:700; }
   .codigo { font-family:ui-monospace,monospace; font-size:34px; font-weight:800; letter-spacing:6px; background:#111815;
     border:1px dashed var(--ok2); border-radius:12px; padding:12px 16px; display:inline-block; margin-top:6px; }
@@ -172,15 +177,15 @@
     </details>
 
     <details class="carta">
-      <summary><b>¿Cobrás también en otros bancos o billeteras?</b><span>Ualá, Cuenta DNI, Galicia, Naranja X… (opcional, solo Android)</span></summary>
-      <p class="sub">Mercado Pago ya está cubierto. Si además te transfieren a otras cuentas, tu celular Android puede avisarle a la caja cada vez que te llega la notificación del banco:</p>
-      <ol class="pasos">
-        <li>Instalá la app <b>Cobrá Tranqui</b> en tu celular Android (el que recibe las notificaciones de tus bancos).</li>
-        <li>Abrila y dale permiso para leer notificaciones.</li>
-        <li>En <b>"Vincular con la nube"</b> escribí este código:</li>
-      </ol>
+      <summary><b>¿Te transfieren también a otro banco o billetera?</b><span>Ualá, Cuenta DNI, Galicia, Naranja X… (opcional, solo con celular Android)</span></summary>
+      <p class="sub">La caja ya ve todo lo que entra a tu <b>Mercado Pago</b>. Si también cobrás en otras cuentas, tu celular puede avisarle a la caja cada vez que tu banco te manda el aviso de <i>"Recibiste una transferencia"</i>.</p>
+      <div class="paso"><span>1</span><div>Desde tu <b>celular Android</b> (el que recibe los avisos de tus bancos), descargá la app:<br>
+        <a class="boton-link" href="cobra-tranqui.apk" download>⬇️ Descargar Cobrá Tranqui para Android</a></div></div>
+      <div class="paso"><span>2</span><div>Abrila y tocá <b>"Dar acceso a notificaciones"</b>.</div></div>
+      <div class="paso"><span>3</span><div>Bajá hasta <b>"Vincular con la nube"</b>, escribí este código y tocá <b>"Vincular"</b>:</div></div>
       <div id="codigoAndroid" class="codigo"></div>
       <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button></div>
+      <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. Con iPhone esto no se puede (Apple no deja leer los avisos de otras apps).</p>
     </details>
 
     <details class="carta">
