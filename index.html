@@ -124,7 +124,8 @@
       <h2>2. Conectá tu Mercado Pago</h2>
       <p class="sub" style="margin:0">Así la caja ve al instante cada transferencia o pago que entra a tu cuenta. Funciona aunque tengas iPhone y estés lejos del local.</p>
       <div class="fila"><span id="estadoMp" class="estado">…</span></div>
-      <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
+      <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button><button id="btnMpDesc" class="sec oculto">Desconectar</button></div>
+      <p class="ayuda" id="ayudaMp">Antes de conectar, fijate que en el navegador esté abierta la cuenta de Mercado Pago donde te transfieren (si no, cerrá esa sesión en mercadopago.com.ar).</p>
     </div>
 
     <div class="carta">
@@ -340,6 +341,9 @@
     if (!e || !e.conectado) { el.textContent = 'No conectado'; el.className = 'estado'; $('btnMp').textContent = 'Conectar con Mercado Pago'; }
     else if (e.ultimo_error) { el.textContent = '⚠️ ' + e.ultimo_error; el.className = 'estado mal'; $('btnMp').textContent = 'Volver a conectar'; }
     else { el.textContent = '✅ Conectado' + (e.mp_nickname ? ' como ' + e.mp_nickname : ''); el.className = 'estado ok'; $('btnMp').textContent = 'Volver a conectar'; }
+    const conectado = !!(e && e.conectado);
+    $('btnMpDesc').classList.toggle('oculto', !conectado);
+    $('ayudaMp').classList.toggle('oculto', conectado);
 
     const { data: an } = await sb.from('android_estado').select('ultimo_ping').eq('comercio_id', com.id).maybeSingle();
     const ea = $('estadoAndroid');
@@ -474,6 +478,14 @@
     const { data, error } = await sb.from('comercios').update(cambios).eq('id', com.id).select().single();
     if (error) return mensaje('No pude guardar: ' + error.message, false);
     com = data; pintar(); mensaje('Guardado.');
+  };
+
+  $('btnMpDesc').onclick = async () => {
+    if (!confirm('¿Desconectar esta cuenta de Mercado Pago? La caja deja de ver los cobros que entran ahí. Los cobros ya registrados quedan.')) return;
+    const { data, error } = await sb.functions.invoke('mp-conectar', { body: { comercio_id: com.id, accion: 'desconectar' } });
+    if (error || !data?.ok) return mensaje('No pude desconectar: ' + (data?.error || error?.message), false);
+    mensaje('Mercado Pago desconectado. Podés conectar otra cuenta cuando quieras.');
+    refrescar();
   };
 
   $('btnMp').onclick = async () => {
