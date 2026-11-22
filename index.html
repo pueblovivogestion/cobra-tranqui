@@ -123,9 +123,9 @@
     <div class="carta">
       <h2>2. Conectá tu Mercado Pago</h2>
       <p class="sub" style="margin:0">Así la caja ve al instante cada transferencia o pago que entra a tu cuenta. Funciona aunque tengas iPhone y estés lejos del local.</p>
-      <div class="fila"><span id="estadoMp" class="estado">…</span></div>
-      <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button><button id="btnMpDesc" class="sec oculto">Desconectar</button></div>
-      <p class="ayuda" id="ayudaMp">Antes de conectar, fijate que en el navegador esté abierta la cuenta de Mercado Pago donde te transfieren (si no, cerrá esa sesión en mercadopago.com.ar).</p>
+      <ul id="cuentasMp"></ul>
+      <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
+      <p class="ayuda" id="ayudaMp">Mercado Pago te va a pedir que inicies sesión: entrá con la cuenta donde te transfieren. Si te conecta solo a otra cuenta, abrí mercadopago.com.ar, cerrá esa sesión y volvé a tocar el botón.</p>
     </div>
 
     <div class="carta">
@@ -335,15 +335,21 @@
   }
 
   async function refrescar() {
-    const { data: mp } = await sb.rpc('estado_mp', { p_comercio: com.id });
-    const e = mp && mp[0];
-    const el = $('estadoMp');
-    if (!e || !e.conectado) { el.textContent = 'No conectado'; el.className = 'estado'; $('btnMp').textContent = 'Conectar con Mercado Pago'; }
-    else if (e.ultimo_error) { el.textContent = '⚠️ ' + e.ultimo_error; el.className = 'estado mal'; $('btnMp').textContent = 'Volver a conectar'; }
-    else { el.textContent = '✅ Conectado' + (e.mp_nickname ? ' como ' + e.mp_nickname : ''); el.className = 'estado ok'; $('btnMp').textContent = 'Volver a conectar'; }
-    const conectado = !!(e && e.conectado);
-    $('btnMpDesc').classList.toggle('oculto', !conectado);
-    $('ayudaMp').classList.toggle('oculto', conectado);
+    // Una fila por cuenta de Mercado Pago conectada, cada una con su botón "Desvincular"
+    const { data: cuentas } = await sb.rpc('estado_mp', { p_comercio: com.id });
+    const ulMp = $('cuentasMp'); ulMp.innerHTML = '';
+    if (!cuentas || !cuentas.length) ulMp.innerHTML = '<li><span class="estado">Ninguna cuenta conectada</span></li>';
+    (cuentas || []).forEach(c => {
+      const li = document.createElement('li');
+      const a = document.createElement('div');
+      a.textContent = (c.ultimo_error ? '⚠️ ' : '✅ ') + (c.mp_nickname || 'Cuenta ' + c.mp_user_id);
+      if (c.ultimo_error) { const d = document.createElement('div'); d.className = 'd'; d.textContent = c.ultimo_error; a.append(d); }
+      const b = document.createElement('button'); b.className = 'sec'; b.textContent = 'Desvincular';
+      b.onclick = () => desvincularMp(c);
+      li.append(a, b); ulMp.append(li);
+    });
+    const hay = !!(cuentas && cuentas.length);
+    $('btnMp').textContent = hay ? '+ Agregar otra cuenta' : 'Conectar con Mercado Pago';
 
     const { data: an } = await sb.from('android_estado').select('ultimo_ping').eq('comercio_id', com.id).maybeSingle();
     const ea = $('estadoAndroid');
@@ -480,15 +486,16 @@
     com = data; pintar(); mensaje('Guardado.');
   };
 
-  $('btnMpDesc').onclick = async () => {
-    if (!confirm('¿Desconectar esta cuenta de Mercado Pago? La caja deja de ver los cobros que entran ahí. Los cobros ya registrados quedan.')) return;
-    const { data, error } = await sb.functions.invoke('mp-conectar', { body: { comercio_id: com.id, accion: 'desconectar' } });
-    if (error || !data?.ok) return mensaje('No pude desconectar: ' + (data?.error || error?.message), false);
-    mensaje('Mercado Pago desconectado. Podés conectar otra cuenta cuando quieras.');
+  async function desvincularMp(c) {
+    if (!confirm('¿Desvincular ' + (c.mp_nickname || 'esta cuenta') + '? La caja deja de ver los cobros que entran ahí. Los cobros ya registrados quedan.')) return;
+    const { data, error } = await sb.functions.invoke('mp-conectar', { body: { comercio_id: com.id, accion: 'desconectar', mp_user_id: c.mp_user_id } });
+    if (error || !data?.ok) return mensaje('No pude desvincular: ' + (data?.error || error?.message), false);
+    mensaje('Cuenta desvinculada. Para conectar otra, tocá "Conectar con Mercado Pago" y entrá con esa cuenta.');
     refrescar();
-  };
+  }
 
   $('btnMp').onclick = async () => {
+    // Por ahora gratis. Más adelante: la 2da cuenta en adelante será función paga.
     const { data, error } = await sb.functions.invoke('mp-conectar', { body: { comercio_id: com.id } });
     if (error || !data?.ok) return mensaje('No pude iniciar la conexión: ' + (data?.error || error?.message), false);
     location.href = data.url;
