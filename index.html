@@ -163,6 +163,19 @@
 
     <div class="carta">
       <h2>Tus ventas</h2>
+      <div class="tabs" id="tabsNegocio">
+        <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Todo (con efectivo y tarjetas)</button>
+      </div>
+      <p class="ayuda" id="notaNegocio" style="margin:0 0 12px"></p>
+
+      <div class="frase" id="nMes"></div>
+      <div class="frase" id="nDias"></div>
+      <div class="frase" id="nHoras"></div>
+
+      <h3>📊 Últimas 4 semanas</h3>
+      <div id="nSemanas"></div>
+
+      <h3>En detalle</h3>
       <div class="tabs" id="tabsPeriodo">
         <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">7 días</button><button data-p="mes">Este mes</button>
       </div>
@@ -171,26 +184,13 @@
         <div><span>Ventas</span><strong id="kCant">0</strong></div>
         <div><span>Venta promedio</span><strong id="kProm">$ 0</strong></div>
       </div>
-      <p class="ayuda" id="kNota">Cuenta solo los cobros por transferencia que ve la app (sin efectivo ni tarjetas, salvo lo cargado en los cierres de turno). No incluye pruebas ni devoluciones.</p>
       <h3>¿A qué hora vendés más?</h3>
       <div id="horas" class="horas"></div>
       <h3>Por medio de pago</h3>
       <ul id="porMedio"></ul>
+      <p class="ayuda">No incluye pruebas ni devoluciones.</p>
       <div class="fila"><button id="btnExcel" class="sec">⬇️ Descargar Excel</button></div>
     </div>
-
-    <details class="carta" id="detNegocio">
-      <summary><b>Cómo viene el negocio</b><span>Cómo vas a cerrar el mes, tus mejores días y horarios</span></summary>
-      <div class="tabs" id="tabsNegocio">
-        <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Todo (con efectivo y tarjetas)</button>
-      </div>
-      <p class="ayuda" id="notaNegocio"></p>
-      <div class="frase" id="nMes"></div>
-      <div class="frase" id="nDias"></div>
-      <div class="frase" id="nHoras"></div>
-      <h3>📊 Últimas 4 semanas</h3>
-      <div id="nSemanas"></div>
-    </details>
 
     <div class="carta">
       <h2>Últimos cobros</h2>
@@ -401,7 +401,6 @@
       li.append(a, m); ul.append(li);
     });
     cargarVentas();
-    if ($('detNegocio').open) cargarNegocio();
     if ($('detTurnos').open || !refrescar.turnosCargados) { cargarTurnos(); refrescar.turnosCargados = true; }
   }
 
@@ -417,18 +416,19 @@
     return { ini, fin: ahora, antIni, antFin };
   }
 
-  async function cargarVentas() {
-    const r = rango(periodo);
-    const { data } = await sb.from('cobros').select('monto, origen, fuente, pagador, ts, prueba, devuelto')
-      .eq('comercio_id', com.id).gte('ts', r.antIni.toISOString()).order('ts').limit(10000);
-    const todas = (data || []).filter(c => !c.prueba && !c.devuelto);
-    ventas = todas.filter(c => new Date(c.ts) >= r.ini);
-    const anteriores = todas.filter(c => new Date(c.ts) >= r.antIni && new Date(c.ts) <= r.antFin);
-    const suma = l => l.reduce((a, c) => a + Number(c.monto), 0);
-    const total = suma(ventas), totAnt = suma(anteriores);
-    $('kTotal').textContent = fmt(total);
-    $('kCant').textContent = ventas.length;
-    $('kProm').textContent = fmt(ventas.length ? total / ventas.length : 0);
+  // Una sola carga de datos (cobros y turnos) para toda la tarjeta "Tus ventas"
+  async function cargarVentas(traer = true) {
+    if (traer || !negocio) await cargarNegocio();
+    if (!negocio) return;
+    const r = rango(periodo), mov = movimientos();
+    const suma = l => l.reduce((a, x) => a + x.v, 0);
+    const act = mov.filter(x => x.t >= r.ini), ant = mov.filter(x => x.t >= r.antIni && x.t <= r.antFin);
+    const reales = act.filter(x => x.cobro); // cada transferencia es una venta (el efectivo del turno no tiene detalle)
+    ventas = reales;
+    const total = suma(act), totAnt = suma(ant);
+    $('kTotal').textContent = fmt(Math.round(total));
+    $('kCant').textContent = reales.length;
+    $('kProm').textContent = fmt(reales.length ? Math.round(suma(reales) / reales.length) : 0);
     const comp = $('kComp');
     const contra = { hoy: 'ayer a esta hora', semana: 'los 7 días anteriores', mes: 'el mes pasado a esta altura' }[periodo];
     if (totAnt > 0) {
@@ -437,17 +437,17 @@
     } else { comp.textContent = ''; }
 
     // Ventas por hora del día
-    const porHora = Array(24).fill(0); ventas.forEach(c => porHora[new Date(c.ts).getHours()] += Number(c.monto));
+    const porHora = Array(24).fill(0); act.forEach(x => { porHora[x.t.getHours()] += x.v; });
     const max = Math.max(...porHora, 1);
     $('horas').innerHTML = '';
     porHora.forEach((v, h) => {
       const b = document.createElement('div'); b.style.height = Math.max(2, v / max * 100) + '%';
-      if (!v) b.className = 'vacia'; b.title = h + ' h: ' + fmt(v); $('horas').append(b);
+      if (!v) b.className = 'vacia'; b.title = h + ' h: ' + fmt(Math.round(v)); $('horas').append(b);
     });
     if (!$('horasEje')) { const e = document.createElement('div'); e.id = 'horasEje'; e.className = 'horas-eje'; e.innerHTML = '<span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>23 h</span>'; $('horas').after(e); }
 
     // Por medio de pago
-    const medios = {}; ventas.forEach(c => { const m = String(c.origen).split(' · ')[0]; medios[m] = (medios[m] || 0) + Number(c.monto); });
+    const medios = {}; act.forEach(x => { const m = String(x.origen).split(' · ')[0]; medios[m] = (medios[m] || 0) + x.v; });
     const ul = $('porMedio'); ul.innerHTML = '';
     const ord = Object.entries(medios).sort((a, b) => b[1] - a[1]);
     if (!ord.length) ul.innerHTML = '<li><span class="d">Sin ventas en este período.</span></li>';
@@ -455,23 +455,24 @@
       const li = document.createElement('li');
       const a = document.createElement('div'); a.textContent = m;
       const d = document.createElement('div'); d.className = 'd'; d.textContent = Math.round(v / (total || 1) * 100) + '%'; a.append(d);
-      const b = document.createElement('div'); b.textContent = fmt(v); li.append(a, b); ul.append(li);
+      const b = document.createElement('div'); b.textContent = fmt(Math.round(v)); li.append(a, b); ul.append(li);
     });
+
+    pintarNegocio();
   }
 
   $('tabsPeriodo').onclick = e => {
     const b = e.target.closest('button'); if (!b) return;
     periodo = b.dataset.p;
     [...$('tabsPeriodo').children].forEach(x => x.classList.toggle('activa', x === b));
-    cargarVentas();
+    cargarVentas(false);
   };
-
   // Excel (CSV con separador ";" y BOM, así Excel en español lo abre bien)
   $('btnExcel').onclick = () => {
     const filas = [['Fecha', 'Hora', 'Monto', 'Medio', 'Pagador']].concat(ventas.map(c => {
-      const d = new Date(c.ts);
+      const d = c.t;
       return [d.toLocaleDateString('es-AR'), d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-        String(Number(c.monto)).replace('.', ','), c.origen, c.pagador || ''];
+        String(c.v).replace('.', ','), c.origen, c.pagador || ''];
     }));
     const csv = '﻿' + filas.map(f => f.map(x => '"' + String(x).replace(/"/g, '""') + '"').join(';')).join('\r\n');
     const a = document.createElement('a');
@@ -491,24 +492,23 @@
     const mesAnt = new Date(); mesAnt.setHours(0, 0, 0, 0); mesAnt.setDate(1); mesAnt.setMonth(mesAnt.getMonth() - 1);
     const ini = desde < mesAnt ? desde : mesAnt;
     const [{ data: cs }, { data: ts }] = await Promise.all([
-      sb.from('cobros').select('monto, ts, prueba, devuelto').eq('comercio_id', com.id).gte('ts', ini.toISOString()).limit(20000),
+      sb.from('cobros').select('monto, ts, prueba, devuelto, origen, pagador').eq('comercio_id', com.id).gte('ts', ini.toISOString()).limit(20000),
       sb.from('turnos').select('inicio, fin, efectivo, tarjetas').eq('comercio_id', com.id).not('fin', 'is', null)
         .gte('inicio', ini.toISOString()).limit(2000),
     ]);
     negocio = { cobros: (cs || []).filter(c => !c.prueba && !c.devuelto), turnos: ts || [] };
-    pintarNegocio();
   }
 
   // Movimientos {t, v}. En "todo", el efectivo y las tarjetas de cada turno se reparten parejo entre
   // las horas que duró (el cierre de turno da el total, no venta por venta).
   function movimientos() {
-    const m = negocio.cobros.map(c => ({ t: new Date(c.ts), v: Number(c.monto) }));
+    const m = negocio.cobros.map(c => ({ t: new Date(c.ts), v: Number(c.monto), origen: c.origen || 'Transferencia', pagador: c.pagador, cobro: true }));
     if (modoNegocio === 'todo') {
       negocio.turnos.forEach(t => {
         const extra = Number(t.efectivo || 0) + Number(t.tarjetas || 0); if (!extra) return;
         const a = new Date(t.inicio).getTime(), b = Math.max(new Date(t.fin).getTime(), a + 60000);
         const horas = Math.max(1, Math.ceil((b - a) / 3600000));
-        for (let i = 0; i < horas; i++) m.push({ t: new Date(a + i * 3600000), v: extra / horas });
+        for (let i = 0; i < horas; i++) m.push({ t: new Date(a + i * 3600000), v: extra / horas, origen: 'Efectivo y tarjetas (turnos)', cobro: false });
       });
     }
     return m;
@@ -592,11 +592,10 @@
     const b = e.target.closest('button'); if (!b) return;
     modoNegocio = b.dataset.m;
     [...$('tabsNegocio').children].forEach(x => x.classList.toggle('activa', x === b));
-    pintarNegocio();
+    cargarVentas(false); // el selector cambia toda la tarjeta "Tus ventas"
   };
-  $('detNegocio').addEventListener('toggle', () => { if ($('detNegocio').open && com) cargarNegocio(); });
   // Para probar los gráficos con datos de ejemplo (no toca la base)
-  window.__probarNegocio = datos => { negocio = datos; pintarNegocio(); };
+  window.__probarNegocio = datos => { negocio = datos; cargarVentas(false); };
 
   // ---------- Cierres de turno ----------
   async function cargarTurnos() {
