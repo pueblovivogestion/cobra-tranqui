@@ -217,10 +217,10 @@
       <div class="fila"><button id="btnExcel" class="sec">Exportar a Excel</button></div>
     </details>
 
-    <div class="carta">
-      <h2>Últimos cobros</h2>
+    <details class="carta" id="detCobros" open>
+      <summary><b>Últimos cobros</b><span>Los últimos movimientos que entraron</span></summary>
       <ul id="cobros"></ul>
-    </div>
+    </details>
 
     <details class="carta" id="detTurnos">
       <summary><b>Cierres de turno</b><span>Si tus empleados abren y cierran turno en la caja, acá ves cada cierre</span></summary>
@@ -431,8 +431,11 @@
   }
 
   // "Estadísticas del negocio" recuerda si el dueño la dejó abierta o cerrada
-  try { if (localStorage.getItem('estadCerrada') === '1') $('detEstad').open = false; } catch (e) {}
-  $('detEstad').addEventListener('toggle', () => { try { localStorage.setItem('estadCerrada', $('detEstad').open ? '0' : '1'); } catch (e) {} });
+  // (lo mismo para "Últimos cobros")
+  [['detEstad', 'estadCerrada'], ['detCobros', 'cobrosCerrada']].forEach(([id, k]) => {
+    try { if (localStorage.getItem(k) === '1') $(id).open = false; } catch (e) {}
+    $(id).addEventListener('toggle', () => { try { localStorage.setItem(k, $(id).open ? '0' : '1'); } catch (e) {} });
+  });
 
   // Una sola carga de datos (cobros y turnos) para toda la tarjeta de estadísticas
   async function cargarVentas(traer = true) {
