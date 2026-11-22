@@ -38,6 +38,12 @@
   .opcion:hover { border-color:var(--ok2); }
   .opcion .emoji { font-size:34px; } .opcion b { font-size:20px; } .opcion span { color:var(--sub); font-size:15px; line-height:1.4; }
   .ayuda { color:var(--sub); font-size:14px; margin:6px 0 0; }
+  details.sub-det { margin-top:16px; padding-top:14px; border-top:1px solid var(--borde); }
+  details.sub-det summary { cursor:pointer; list-style:none; display:flex; flex-direction:column; gap:4px; }
+  details.sub-det summary::-webkit-details-marker { display:none; }
+  details.sub-det summary b { font-size:17px; } details.sub-det summary b::before { content:'▸ '; color:var(--ok2); }
+  details.sub-det[open] summary b::before { content:'▾ '; } details.sub-det summary span { color:var(--sub); font-size:14px; }
+  details.sub-det[open] summary { margin-bottom:10px; }
   h3 { font-size:15px; color:var(--sub); margin:18px 0 8px; font-weight:600; }
   .tabs { display:flex; gap:6px; margin-bottom:12px; } .tabs button { background:#2c3a33; font-size:14px; padding:8px 12px; }
   .tabs button.activa { background:var(--ok2); }
@@ -139,11 +145,22 @@
     </div>
 
     <div class="carta">
-      <h2>2. Conectá tu Mercado Pago</h2>
+      <h2>2. Conectá tus cuentas</h2>
       <p class="sub" style="margin:0">Así la caja ve al instante cada transferencia o pago que entra a tu cuenta. Funciona aunque tengas iPhone y estés lejos del local.</p>
       <ul id="cuentasMp"></ul>
       <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
       <p class="ayuda" id="ayudaMp">Mercado Pago te va a pedir que inicies sesión: entrá con la cuenta donde te transfieren. Si te conecta solo a otra cuenta, abrí mercadopago.com.ar, cerrá esa sesión y volvé a tocar el botón.</p>
+      <details class="sub-det" id="detOtrosBancos">
+      <summary><b>¿Te transfieren también a otro banco o billetera?</b><span>Ualá, Cuenta DNI, Galicia, Naranja X… (opcional, solo con celular Android)</span></summary>
+      <p class="sub">La caja ya ve todo lo que entra a tu <b>Mercado Pago</b>. Si también cobrás en otras cuentas, tu celular puede avisarle a la caja cada vez que tu banco te manda el aviso de <i>"Recibiste una transferencia"</i>.</p>
+      <div class="paso"><span>1</span><div>Desde tu <b>celular Android</b> (el que recibe los avisos de tus bancos), descargá la app:<br>
+        <a class="boton-link" href="cobra-tranqui.apk" download>⬇️ Descargar Cobrá Tranqui para Android</a></div></div>
+      <div class="paso"><span>2</span><div>Abrila y tocá <b>"Dar acceso a notificaciones"</b>.</div></div>
+      <div class="paso"><span>3</span><div>Bajá hasta <b>"Vincular con la nube"</b>, escribí este código y tocá <b>"Vincular"</b>:</div></div>
+      <div id="codigoAndroid" class="codigo"></div>
+      <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button></div>
+      <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. Con iPhone esto no se puede (Apple no deja leer los avisos de otras apps).</p>
+    </details>
     </div>
 
     <div class="carta">
@@ -207,18 +224,7 @@
       <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total y la cantidad de ventas del día</label>
       <p class="ayuda">La caja sigue mostrando cada cobro que entra (los últimos 10), pero no cuánto se vendió. En el cierre de turno, el empleado carga el efectivo sin ver lo que la app sumó (cierre "a ciegas"): vos ves el resumen completo acá.</p>
     </details>
-
-    <details class="carta">
-      <summary><b>¿Te transfieren también a otro banco o billetera?</b><span>Ualá, Cuenta DNI, Galicia, Naranja X… (opcional, solo con celular Android)</span></summary>
-      <p class="sub">La caja ya ve todo lo que entra a tu <b>Mercado Pago</b>. Si también cobrás en otras cuentas, tu celular puede avisarle a la caja cada vez que tu banco te manda el aviso de <i>"Recibiste una transferencia"</i>.</p>
-      <div class="paso"><span>1</span><div>Desde tu <b>celular Android</b> (el que recibe los avisos de tus bancos), descargá la app:<br>
-        <a class="boton-link" href="cobra-tranqui.apk" download>⬇️ Descargar Cobrá Tranqui para Android</a></div></div>
-      <div class="paso"><span>2</span><div>Abrila y tocá <b>"Dar acceso a notificaciones"</b>.</div></div>
-      <div class="paso"><span>3</span><div>Bajá hasta <b>"Vincular con la nube"</b>, escribí este código y tocá <b>"Vincular"</b>:</div></div>
-      <div id="codigoAndroid" class="codigo"></div>
-      <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button></div>
-      <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. Con iPhone esto no se puede (Apple no deja leer los avisos de otras apps).</p>
-    </details>
+
 
     <details class="carta">
       <summary><b>Comprobantes con foto</b><span>Para cuando el cliente te muestra la transferencia pero la plata todavía no llegó (opcional)</span></summary>
