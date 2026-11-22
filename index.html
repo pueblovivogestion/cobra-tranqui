@@ -53,6 +53,11 @@
   .eje30 { display:flex; justify-content:space-between; color:var(--sub); font-size:11px; margin-top:2px; }
   .proy { background:#111815; border-radius:12px; padding:14px; line-height:1.5; }
   .proy .grande { font-size:26px; font-weight:800; }
+  .frase { background:#111815; border-radius:12px; padding:14px; margin:10px 0; line-height:1.6; font-size:16px; }
+  .frase .grande { font-size:24px; font-weight:800; } .frase .sube { color:#7ee2a8; } .frase .baja { color:#ff8a80; }
+  .semana { display:grid; grid-template-columns:110px 1fr auto; gap:8px; align-items:center; margin:7px 0; font-size:14px; }
+  .semana .barra { height:16px; background:#2c3a33; border-radius:8px; overflow:hidden; } .semana .barra i { display:block; height:100%; background:var(--ok2); border-radius:8px; }
+  .semana.actual span, .semana.actual b { color:#7ee2a8; }
   .proy .sube { color:#7ee2a8; } .proy .baja { color:#ff8a80; }
   .dia-sem { display:grid; grid-template-columns:44px 1fr auto; gap:8px; align-items:center; margin:5px 0; font-size:14px; }
   .dia-sem .barra { height:14px; background:#2c3a33; border-radius:7px; overflow:hidden; }
@@ -175,26 +180,16 @@
     </div>
 
     <details class="carta" id="detNegocio">
-      <summary><b>Cómo viene el negocio</b><span>Últimos 30 días, proyección del mes, mejores días y horarios</span></summary>
+      <summary><b>Cómo viene el negocio</b><span>Cómo vas a cerrar el mes, tus mejores días y horarios</span></summary>
       <div class="tabs" id="tabsNegocio">
         <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Todo (con efectivo y tarjetas)</button>
       </div>
       <p class="ayuda" id="notaNegocio"></p>
-
-      <h3>Últimos 30 días</h3>
-      <div id="graf30"></div>
-      <p class="ayuda">Barras: lo cobrado cada día. Línea: promedio de los últimos 7 días (muestra la tendencia).</p>
-
-      <h3>Proyección del mes</h3>
-      <div id="proyeccion" class="proy"></div>
-
-      <h3>Mejor y peor día de la semana</h3>
-      <div id="diasSemana"></div>
-      <p class="ayuda">Promedio de las últimas 8 semanas.</p>
-
-      <h3>¿Cuándo vendés más? (día × hora)</h3>
-      <div id="mapaCalor"></div>
-      <p class="ayuda">Más oscuro = más ventas. Promedio de las últimas 8 semanas.</p>
+      <div class="frase" id="nMes"></div>
+      <div class="frase" id="nDias"></div>
+      <div class="frase" id="nHoras"></div>
+      <h3>📊 Últimas 4 semanas</h3>
+      <div id="nSemanas"></div>
     </details>
 
     <div class="carta">
@@ -523,74 +518,76 @@
     if (!negocio) return;
     const hayTurnos = negocio.turnos.some(t => Number(t.efectivo || 0) + Number(t.tarjetas || 0) > 0);
     $('notaNegocio').textContent = modoNegocio === 'todo'
-      ? (hayTurnos ? 'Transferencias + efectivo y tarjetas cargados en los cierres de turno (repartidos entre las horas de cada turno).'
+      ? (hayTurnos ? 'Suma las transferencias más el efectivo y las tarjetas de los cierres de turno.'
         : 'Todavía no hay cierres de turno con efectivo o tarjetas: por ahora da lo mismo que "solo transferencias".')
       : 'Solo lo que entra por transferencia o Mercado Pago.';
     const mov = movimientos();
+    const plata = v => fmt(Math.round(v));
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const primero = mov.length ? Math.min(...mov.map(x => x.t.getTime())) : Date.now();
+    const diasConDatos = (Date.now() - primero) / 86400000;
 
-    // Últimos 30 días: barras por día + promedio móvil de 7 días
-    const dias = []; for (let i = 29; i >= 0; i--) { const d = new Date(hoy); d.setDate(d.getDate() - i); dias.push({ d, v: 0 }); }
-    const idx = {}; dias.forEach((x, i) => { idx[claveDia(x.d)] = i; });
-    mov.forEach(x => { const i = idx[claveDia(x.t)]; if (i !== undefined) dias[i].v += x.v; });
-    const max = Math.max(...dias.map(x => x.v), 1), W = 300, H = 100, bw = W / 30;
-    let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
-    dias.forEach((x, i) => {
-      const h = x.v / max * (H - 6);
-      svg += `<rect x="${i * bw + 1}" y="${H - h}" width="${bw - 2}" height="${h}" rx="1" fill="${i === 29 ? '#7ee2a8' : '#16a34a'}" opacity=".85">` +
-        `<title>${x.d.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit' })}: ${fmt(Math.round(x.v))}</title></rect>`;
-    });
-    const pts = dias.map((x, i) => {
-      const s = dias.slice(Math.max(0, i - 6), i + 1), p = s.reduce((a, y) => a + y.v, 0) / s.length;
-      return `${i * bw + bw / 2},${H - p / max * (H - 6)}`;
-    });
-    svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="#ffe58a" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
-    const fd = d => d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
-    $('graf30').innerHTML = svg + `<div class="eje30"><span>${fd(dias[0].d)}</span><span>${fd(dias[15].d)}</span><span>hoy</span></div>`;
-
-    // Proyección del mes
+    // 📅 Este mes
     const ahora = new Date(), iniMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
     const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1), iniAnt = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
     const delMes = mov.filter(x => x.t >= iniMes).reduce((a, x) => a + x.v, 0);
     const mesPasado = mov.filter(x => x.t >= iniAnt && x.t < iniMes).reduce((a, x) => a + x.v, 0);
-    const fr = (ahora - iniMes) / (finMes - iniMes), diasMes = Math.round((finMes - iniMes) / 86400000);
+    const fr = (ahora - iniMes) / (finMes - iniMes);
     const nomMes = ahora.toLocaleDateString('es-AR', { month: 'long' }), nomAnt = iniAnt.toLocaleDateString('es-AR', { month: 'long' });
-    if (fr < 0.1 || !delMes) {
-      $('proyeccion').innerHTML = `Llevás <b>${fmt(Math.round(delMes))}</b> en ${nomMes}. La proyección aparece desde el día ${Math.ceil(diasMes * 0.1) + 1}, cuando hay más datos.`;
-    } else {
+    let mes = `📅 <b>Este mes</b><br>Llevás <span class="grande">${plata(delMes)}</span>`;
+    if (fr >= 0.1 && delMes > 0) {
       const proy = delMes / fr;
-      let comp = '';
+      mes += `<br>A este ritmo cerrás ${nomMes} en <b>${plata(proy)}</b>.`;
       if (mesPasado > 0) {
         const pct = Math.round((proy - mesPasado) / mesPasado * 100);
-        comp = `<br><span class="${pct >= 0 ? 'sube' : 'baja'}">${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)}% vs ${nomAnt} (${fmt(Math.round(mesPasado))})</span>`;
+        mes += pct >= 0 ? `<br><span class="sube">▲ Es ${pct}% más que ${nomAnt}.</span>` : `<br><span class="baja">▼ Es ${-pct}% menos que ${nomAnt}.</span>`;
       }
-      $('proyeccion').innerHTML = `A este ritmo vas a cerrar ${nomMes} en<div class="grande">${fmt(Math.round(proy))}</div>` +
-        `Llevás ${fmt(Math.round(delMes))} en ${Math.ceil(fr * diasMes)} de ${diasMes} días.${comp}`;
+    } else mes += '<br>En unos días te muestro cómo vas a cerrar el mes.';
+    $('nMes').innerHTML = mes;
+
+    // 🏆 Mejor y peor día (promedio de las últimas 8 semanas)
+    const NOMBRES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const desde8 = new Date(hoy); desde8.setDate(desde8.getDate() - 55);
+    const semanas = Math.max(1, Math.min(8, Math.ceil(diasConDatos / 7)));
+    const porDia = Array(7).fill(0); mov.forEach(x => { if (x.t >= desde8) porDia[x.t.getDay()] += x.v; });
+    const con = porDia.map((v, i) => ({ v: v / semanas, i })).filter(x => x.v > 0);
+    if (diasConDatos < 14 || con.length < 2) {
+      $('nDias').innerHTML = '🏆 <b>Tus mejores días</b><br>Con un par de semanas más de ventas te digo cuál es tu mejor día y cuál el más flojo.';
+    } else {
+      const mejor = con.reduce((a, b) => (b.v > a.v ? b : a)), peor = con.reduce((a, b) => (b.v < a.v ? b : a));
+      $('nDias').innerHTML = `🏆 <b>Tu mejor día es el ${NOMBRES[mejor.i]}</b>: vendés en promedio <b>${plata(mejor.v)}</b>.<br>` +
+        `📉 El más flojo es el ${NOMBRES[peor.i]}: <b>${plata(peor.v)}</b>.`;
     }
 
-    // Mejor y peor día de la semana (promedio de 8 semanas)
-    const desde8 = new Date(hoy); desde8.setDate(desde8.getDate() - 55);
-    const porDia = Array(7).fill(0); mov.forEach(x => { if (x.t >= desde8) porDia[x.t.getDay()] += x.v; });
-    const prom = porDia.map(v => v / 8), orden = [1, 2, 3, 4, 5, 6, 0], maxD = Math.max(...prom, 1);
-    const con = prom.map((v, i) => ({ v, i })).filter(x => x.v > 0);
-    const mejor = con.length ? con.reduce((a, b) => (b.v > a.v ? b : a)).i : -1;
-    const peor = con.length > 1 ? con.reduce((a, b) => (b.v < a.v ? b : a)).i : -1;
-    $('diasSemana').innerHTML = orden.map(i => `<div class="dia-sem${i === mejor ? ' mejor' : ''}${i === peor ? ' peor' : ''}">` +
-      `<b>${DIAS[i]}</b><div class="barra"><i style="width:${prom[i] / maxD * 100}%"></i></div>` +
-      `<span>${fmt(Math.round(prom[i]))}${i === mejor ? ' 🏆' : ''}${i === peor ? ' 📉' : ''}</span></div>`).join('');
+    // 🕐 Horario fuerte y tranquilo (bloques de 3 horas, últimas 8 semanas)
+    const porHora = Array(24).fill(0); mov.forEach(x => { if (x.t >= desde8) porHora[x.t.getHours()] += x.v; });
+    const abiertas = porHora.map((v, h) => (v > 0 ? h : -1)).filter(h => h >= 0);
+    if (diasConDatos < 7 || abiertas.length < 3) {
+      $('nHoras').innerHTML = '🕐 <b>Tus horarios</b><br>Con una semana más de ventas te digo a qué hora vendés más.';
+    } else {
+      const desdeH = abiertas[0], hastaH = abiertas[abiertas.length - 1];
+      const bloques = [];
+      for (let h = desdeH; h + 2 <= hastaH; h++) bloques.push({ h, v: porHora[h] + porHora[h + 1] + porHora[h + 2] });
+      const fuerte = bloques.reduce((a, b) => (b.v > a.v ? b : a));
+      const tranqui = bloques.reduce((a, b) => (b.v < a.v ? b : a));
+      let txt = `🕐 <b>Tu horario fuerte es de ${fuerte.h} a ${fuerte.h + 3} hs.</b>`;
+      if (tranqui.h !== fuerte.h && tranqui.v < fuerte.v * 0.6) txt += `<br>El más tranquilo, de ${tranqui.h} a ${tranqui.h + 3} hs.`;
+      $('nHoras').innerHTML = txt;
+    }
 
-    // Mapa de calor día × hora
-    const celdas = Array.from({ length: 7 }, () => Array(24).fill(0));
-    mov.forEach(x => { if (x.t >= desde8) celdas[x.t.getDay()][x.t.getHours()] += x.v; });
-    const maxC = Math.max(...celdas.flat(), 1);
-    let html = '<div class="calor"><span></span>' + Array.from({ length: 24 }, (_, h) => `<span class="h">${h % 6 === 0 ? h : ''}</span>`).join('');
-    orden.forEach(d => {
-      html += `<span>${DIAS[d]}</span>` + celdas[d].map((v, h) =>
-        `<span class="c" style="opacity:${v ? 0.15 + 0.85 * v / maxC : 0.06}" title="${DIAS[d]} ${h} h: ${fmt(Math.round(v / 8))} promedio"></span>`).join('');
+    // 📊 Últimas 4 semanas (bloques de 7 días hacia atrás desde hoy)
+    const fin0 = new Date(hoy); fin0.setDate(fin0.getDate() + 1);
+    const etiquetas = ['Esta semana', 'Semana pasada', 'Hace 2 semanas', 'Hace 3 semanas'];
+    const sem = etiquetas.map((e, i) => {
+      const hasta = new Date(fin0); hasta.setDate(hasta.getDate() - 7 * i);
+      const desde = new Date(hasta); desde.setDate(desde.getDate() - 7);
+      return { e, v: mov.filter(x => x.t >= desde && x.t < hasta).reduce((a, x) => a + x.v, 0) };
     });
-    $('mapaCalor').innerHTML = html + '</div>';
+    const maxS = Math.max(...sem.map(s => s.v), 1);
+    $('nSemanas').innerHTML = sem.map((s, i) => `<div class="semana${i === 0 ? ' actual' : ''}"><span>${s.e}</span>` +
+      `<div class="barra"><i style="width:${s.v / maxS * 100}%"></i></div><b>${plata(s.v)}</b></div>`).join('') +
+      '<p class="ayuda">"Esta semana" son los últimos 7 días, contando hoy.</p>';
   }
-
   $('tabsNegocio').onclick = e => {
     const b = e.target.closest('button'); if (!b) return;
     modoNegocio = b.dataset.m;
