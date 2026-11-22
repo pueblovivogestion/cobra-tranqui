@@ -38,6 +38,20 @@
   .opcion:hover { border-color:var(--ok2); }
   .opcion .emoji { font-size:34px; } .opcion b { font-size:20px; } .opcion span { color:var(--sub); font-size:15px; line-height:1.4; }
   .ayuda { color:var(--sub); font-size:14px; margin:6px 0 0; }
+  h3 { font-size:15px; color:var(--sub); margin:18px 0 8px; font-weight:600; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; } .tabs button { background:#2c3a33; font-size:14px; padding:8px 12px; }
+  .tabs button.activa { background:var(--ok2); }
+  .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .kpis div { background:#111815; border-radius:12px; padding:10px; } .kpis span { display:block; color:var(--sub); font-size:12px; }
+  .kpis strong { font-size:20px; display:block; } .kpis em { font-style:normal; font-size:12px; }
+  .kpis em.sube { color:#7ee2a8; } .kpis em.baja { color:#ff8a80; }
+  .horas { display:flex; align-items:flex-end; gap:2px; height:90px; border-bottom:1px solid var(--borde); }
+  .horas div { flex:1; background:var(--ok2); border-radius:3px 3px 0 0; min-height:2px; position:relative; }
+  .horas div.vacia { background:#26302b; }
+  .horas-eje { display:flex; justify-content:space-between; color:var(--sub); font-size:11px; margin-top:4px; }
+  label.check { display:flex; gap:10px; align-items:center; color:var(--txt); font-size:16px; }
+  label.check input { width:22px; height:22px; }
+  @media (max-width:480px) { .kpis strong { font-size:16px; } }
   details.carta summary { cursor:pointer; list-style:none; display:flex; flex-direction:column; gap:4px; }
   details.carta summary::-webkit-details-marker { display:none; }
   details.carta summary b { font-size:18px; } details.carta summary b::before { content:'▸ '; color:var(--ok2); }
@@ -124,9 +138,38 @@
     </div>
 
     <div class="carta">
+      <h2>Tus ventas</h2>
+      <div class="tabs" id="tabsPeriodo">
+        <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">7 días</button><button data-p="mes">Este mes</button>
+      </div>
+      <div class="kpis">
+        <div><span>Total cobrado</span><strong id="kTotal">$ 0</strong><em id="kComp"></em></div>
+        <div><span>Ventas</span><strong id="kCant">0</strong></div>
+        <div><span>Venta promedio</span><strong id="kProm">$ 0</strong></div>
+      </div>
+      <p class="ayuda" id="kNota">Cuenta solo los cobros por transferencia que ve la app (sin efectivo ni tarjetas, salvo lo cargado en los cierres de turno). No incluye pruebas ni devoluciones.</p>
+      <h3>¿A qué hora vendés más?</h3>
+      <div id="horas" class="horas"></div>
+      <h3>Por medio de pago</h3>
+      <ul id="porMedio"></ul>
+      <div class="fila"><button id="btnExcel" class="sec">⬇️ Descargar Excel</button></div>
+    </div>
+
+    <div class="carta">
       <h2>Últimos cobros</h2>
       <ul id="cobros"></ul>
     </div>
+
+    <details class="carta" id="detTurnos">
+      <summary><b>Cierres de turno</b><span>Si tus empleados abren y cierran turno en la caja, acá ves cada cierre</span></summary>
+      <ul id="turnos"></ul>
+    </details>
+
+    <details class="carta">
+      <summary><b>Opciones de la caja</b><span>Qué puede ver tu empleado</span></summary>
+      <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total y la cantidad de ventas del día</label>
+      <p class="ayuda">La caja sigue mostrando cada cobro que entra (los últimos 10), pero no cuánto se vendió. En el cierre de turno, el empleado carga el efectivo sin ver lo que la app sumó (cierre "a ciegas"): vos ves el resumen completo acá.</p>
+    </details>
 
     <details class="carta">
       <summary><b>¿Cobrás también en otros bancos o billeteras?</b><span>Ualá, Cuenta DNI, Galicia, Naranja X… (opcional, solo Android)</span></summary>
@@ -278,6 +321,7 @@
     $('cuentas').value = (com.mis_cuentas || []).join(', ');
     $('umbral').value = com.umbral; $('minutos').value = com.minutos_alerta;
     $('codigoAndroid').textContent = (com.codigo_android || '').replace(/^(.{4})(.{4})$/, '$1 $2');
+    $('ocultarTotales').checked = !!com.ocultar_totales;
     $('linkCaja').textContent = linkCaja();
     $('codigoCaja').textContent = (com.codigo_caja || '').replace(/^(.{4})(.{4})$/, '$1 $2');
     const qr = qrcode(0, 'M'); qr.addData(linkCaja()); qr.make();
@@ -298,18 +342,123 @@
     else if (Date.now() - new Date(an.ultimo_ping).getTime() < 3 * 60000) { ea.textContent = '✅ Celular conectado'; ea.className = 'estado ok'; }
     else { ea.textContent = '⚠️ Último contacto ' + cuando(an.ultimo_ping); ea.className = 'estado mal'; }
 
-    const { data: cobros } = await sb.from('cobros').select('monto, pagador, origen, ts, prueba').eq('comercio_id', com.id)
+    const { data: cobros } = await sb.from('cobros').select('monto, pagador, origen, ts, prueba, devuelto').eq('comercio_id', com.id)
       .order('ts', { ascending: false }).limit(15);
     const ul = $('cobros'); ul.innerHTML = '';
     if (!cobros || !cobros.length) ul.innerHTML = '<li><span class="d">Todavía no entró ningún cobro.</span></li>';
     (cobros || []).forEach(c => {
       const li = document.createElement('li');
-      const a = document.createElement('div'); a.textContent = (c.pagador || 'Sin nombre') + (c.prueba ? ' (prueba)' : '');
+      if (c.devuelto) li.style.opacity = '.55';
+      const a = document.createElement('div'); a.textContent = (c.pagador || 'Sin nombre') + (c.prueba ? ' (prueba)' : '') + (c.devuelto ? ' (DEVUELTO)' : '');
       const d = document.createElement('div'); d.className = 'd'; d.textContent = c.origen + ' · ' + cuando(c.ts); a.append(d);
       const m = document.createElement('div'); m.textContent = fmt(c.monto);
       li.append(a, m); ul.append(li);
     });
+    cargarVentas();
+    if ($('detTurnos').open || !refrescar.turnosCargados) { cargarTurnos(); refrescar.turnosCargados = true; }
   }
+
+  // ---------- Resumen de ventas ----------
+  let periodo = 'hoy', ventas = [];
+  function rango(p) {
+    // ini..ahora = período actual; antIni..antFin = mismo tramo del período anterior (para comparar)
+    const ahora = new Date(), ini = new Date(ahora); ini.setHours(0, 0, 0, 0);
+    const antIni = new Date(ini), antFin = new Date(ahora);
+    if (p === 'hoy') { antIni.setDate(antIni.getDate() - 1); antFin.setDate(antFin.getDate() - 1); }
+    if (p === 'semana') { ini.setDate(ini.getDate() - 6); antIni.setTime(ini.getTime() - 7 * 86400000); antFin.setDate(antFin.getDate() - 7); }
+    if (p === 'mes') { ini.setDate(1); antIni.setDate(1); antIni.setMonth(antIni.getMonth() - 1); antFin.setMonth(antFin.getMonth() - 1); }
+    return { ini, fin: ahora, antIni, antFin };
+  }
+
+  async function cargarVentas() {
+    const r = rango(periodo);
+    const { data } = await sb.from('cobros').select('monto, origen, fuente, pagador, ts, prueba, devuelto')
+      .eq('comercio_id', com.id).gte('ts', r.antIni.toISOString()).order('ts').limit(10000);
+    const todas = (data || []).filter(c => !c.prueba && !c.devuelto);
+    ventas = todas.filter(c => new Date(c.ts) >= r.ini);
+    const anteriores = todas.filter(c => new Date(c.ts) >= r.antIni && new Date(c.ts) <= r.antFin);
+    const suma = l => l.reduce((a, c) => a + Number(c.monto), 0);
+    const total = suma(ventas), totAnt = suma(anteriores);
+    $('kTotal').textContent = fmt(total);
+    $('kCant').textContent = ventas.length;
+    $('kProm').textContent = fmt(ventas.length ? total / ventas.length : 0);
+    const comp = $('kComp');
+    const contra = { hoy: 'ayer a esta hora', semana: 'los 7 días anteriores', mes: 'el mes pasado a esta altura' }[periodo];
+    if (totAnt > 0) {
+      const pct = Math.round((total - totAnt) / totAnt * 100);
+      comp.textContent = (pct >= 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs ' + contra; comp.className = pct >= 0 ? 'sube' : 'baja';
+    } else { comp.textContent = ''; }
+
+    // Ventas por hora del día
+    const porHora = Array(24).fill(0); ventas.forEach(c => porHora[new Date(c.ts).getHours()] += Number(c.monto));
+    const max = Math.max(...porHora, 1);
+    $('horas').innerHTML = '';
+    porHora.forEach((v, h) => {
+      const b = document.createElement('div'); b.style.height = Math.max(2, v / max * 100) + '%';
+      if (!v) b.className = 'vacia'; b.title = h + ' h: ' + fmt(v); $('horas').append(b);
+    });
+    if (!$('horasEje')) { const e = document.createElement('div'); e.id = 'horasEje'; e.className = 'horas-eje'; e.innerHTML = '<span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>23 h</span>'; $('horas').after(e); }
+
+    // Por medio de pago
+    const medios = {}; ventas.forEach(c => { const m = String(c.origen).split(' · ')[0]; medios[m] = (medios[m] || 0) + Number(c.monto); });
+    const ul = $('porMedio'); ul.innerHTML = '';
+    const ord = Object.entries(medios).sort((a, b) => b[1] - a[1]);
+    if (!ord.length) ul.innerHTML = '<li><span class="d">Sin ventas en este período.</span></li>';
+    ord.forEach(([m, v]) => {
+      const li = document.createElement('li');
+      const a = document.createElement('div'); a.textContent = m;
+      const d = document.createElement('div'); d.className = 'd'; d.textContent = Math.round(v / (total || 1) * 100) + '%'; a.append(d);
+      const b = document.createElement('div'); b.textContent = fmt(v); li.append(a, b); ul.append(li);
+    });
+  }
+
+  $('tabsPeriodo').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    periodo = b.dataset.p;
+    [...$('tabsPeriodo').children].forEach(x => x.classList.toggle('activa', x === b));
+    cargarVentas();
+  };
+
+  // Excel (CSV con separador ";" y BOM, así Excel en español lo abre bien)
+  $('btnExcel').onclick = () => {
+    const filas = [['Fecha', 'Hora', 'Monto', 'Medio', 'Pagador']].concat(ventas.map(c => {
+      const d = new Date(c.ts);
+      return [d.toLocaleDateString('es-AR'), d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+        String(Number(c.monto)).replace('.', ','), c.origen, c.pagador || ''];
+    }));
+    const csv = '﻿' + filas.map(f => f.map(x => '"' + String(x).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'ventas-' + periodo + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  // ---------- Cierres de turno ----------
+  async function cargarTurnos() {
+    const { data } = await sb.from('turnos').select('*').eq('comercio_id', com.id).order('inicio', { ascending: false }).limit(20);
+    const ul = $('turnos'); ul.innerHTML = '';
+    if (!data || !data.length) { ul.innerHTML = '<li><span class="d">Todavía no hubo turnos. Se abren desde la caja con el botón "Abrir turno".</span></li>'; return; }
+    data.forEach(t => {
+      const li = document.createElement('li');
+      const a = document.createElement('div'); a.textContent = t.empleado + (t.fin ? '' : ' (turno abierto)');
+      const d = document.createElement('div'); d.className = 'd';
+      d.textContent = cuando(t.inicio) + (t.fin ? ' a ' + new Date(t.fin).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '') +
+        (t.fin ? ' · Transf. ' + fmt(t.total_transferencias || 0) + ' (' + (t.cantidad_transferencias || 0) + ') · Efectivo ' + fmt(t.efectivo || 0) +
+          ' · Tarjetas ' + fmt(t.tarjetas || 0) + (t.devoluciones ? ' · Devol. ' + fmt(t.devoluciones) : '') + (t.notas ? ' · "' + t.notas + '"' : '') : '');
+      a.append(d);
+      const total = Number(t.total_transferencias || 0) + Number(t.efectivo || 0) + Number(t.tarjetas || 0);
+      const b = document.createElement('div'); b.textContent = t.fin ? fmt(total) : '…';
+      li.append(a, b); ul.append(li);
+    });
+  }
+
+  $('detTurnos').addEventListener('toggle', () => { if ($('detTurnos').open && com) cargarTurnos(); });
+
+  $('ocultarTotales').onchange = async () => {
+    const { data, error } = await sb.from('comercios').update({ ocultar_totales: $('ocultarTotales').checked }).eq('id', com.id).select().single();
+    if (error) return mensaje('No pude guardar: ' + error.message, false);
+    com = data; mensaje($('ocultarTotales').checked ? 'Listo: la caja ya no muestra los totales del día.' : 'Listo: la caja vuelve a mostrar los totales.');
+  };
 
   $('btnGuardar').onclick = $('btnGuardar2').onclick = async () => {
     const cambios = {

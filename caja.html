@@ -46,6 +46,15 @@
   .prueba { background:#5b4b00; color:#ffe58a; font-size:12px; padding:2px 6px; border-radius:6px; margin-left:6px; }
   footer { text-align:center; color:var(--sub); font-size:14px; padding:0 16px 24px; }
   #sonido { margin:0 16px 8px; width:calc(100% - 32px); background:#2c3a33; font-size:17px; }
+  #filaTurno { margin:0 16px 8px; }
+  #btnTurno { width:100%; background:#22302a; font-size:16px; font-weight:600; border:1px solid #34413b; }
+  #btnTurno.abierto { background:#123d2c; border-color:#16a34a; }
+  li.devuelto { opacity:.55; } li.devuelto .m { text-decoration:line-through; }
+  .devuelto-tag { background:#5a1a17; color:#ffb4ab; font-size:12px; padding:2px 6px; border-radius:6px; margin-left:6px; }
+  li.tocable { cursor:pointer; }
+  #modal label { display:block; color:var(--sub); font-size:14px; margin:12px 0 4px; }
+  #modal input, #modal textarea { width:100%; font-size:20px; padding:10px; border-radius:10px; border:1px solid #34413b; background:#111815; color:var(--txt); }
+  .fila-res { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #26302b; }
   #foto { margin:0 16px 12px; width:calc(100% - 32px); background:#b7791f; font-size:19px; }
   .pend { margin:0 16px 10px; padding:14px; border-radius:14px; background:#3d3210; border-left:6px solid #e0a526; }
   .pend.demorado { background:#3f1513; border-left-color:#ff6b5e; }
@@ -90,6 +99,7 @@
     <div class="quien"></div>
   </div>
   <button id="sonido">🔈 Tocá para activar el aviso por voz</button>
+  <div id="filaTurno" class="oculto"><button id="btnTurno">🕘 Abrir turno (opcional)</button></div>
   <button id="foto">📷 Me muestran un comprobante</button>
   <input id="archivo" type="file" accept="image/*" capture="environment" class="oculto">
   <div id="pendientesBox" class="oculto">
@@ -159,6 +169,16 @@
     return r.json();
   }
   let sinFuentes = false;
+  let ocultarTotales = false;
+  let turno = null;
+
+  // ---------- Pantalla siempre encendida mientras la caja está abierta ----------
+  let wakeLock = null;
+  async function mantenerEncendida() {
+    try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') mantenerEncendida(); });
+  document.addEventListener('click', () => { if (!wakeLock || wakeLock.released) mantenerEncendida(); }, { passive: true });
   const fmt = n => '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const hora = ts => new Date(ts).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
   const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
@@ -213,15 +233,21 @@
   }
 
   function render() {
-    const reales = pagos.filter(p => !p.prueba);
+    const reales = pagos.filter(p => !p.prueba && !p.devuelto);
     $('cant').textContent = reales.length;
     $('total').textContent = fmt(reales.reduce((a, p) => a + p.monto, 0));
+    // "Ocultar totales": el empleado ve los cobros de a uno (los últimos 10), pero no cuánto se vendió en el día
+    $('resumen').classList.toggle('oculto', ocultarTotales);
     const ul = $('lista'); ul.innerHTML = '';
-    [...pagos].reverse().forEach(p => {
+    const lista = [...pagos].reverse();
+    (ocultarTotales ? lista.slice(0, 10) : lista).forEach(p => {
       const li = document.createElement('li');
+      if (p.devuelto) li.classList.add('devuelto');
+      if (NUBE && !p.prueba) { li.classList.add('tocable'); li.onclick = () => opcionesCobro(p); }
       const izq = document.createElement('div');
       const nombre = document.createElement('div'); nombre.textContent = p.pagador || 'Sin nombre';
       if (p.prueba) { const s = document.createElement('span'); s.className = 'prueba'; s.textContent = 'PRUEBA'; nombre.appendChild(s); }
+      if (p.devuelto) { const s = document.createElement('span'); s.className = 'devuelto-tag'; s.textContent = 'DEVUELTO'; nombre.appendChild(s); }
       const det = document.createElement('div'); det.className = 'd'; det.textContent = p.origen + ' · ' + hora(p.ts);
       izq.append(nombre, det);
       const m = document.createElement('div'); m.className = 'm'; m.textContent = fmt(p.monto);
@@ -254,6 +280,13 @@
       umbral = d.umbral ?? umbral;
       minutos = d.minutosAlerta ?? minutos;
       $('foto').classList.toggle('oculto', d.fotos === false);
+      if (NUBE) {
+        const dev = new Set(d.devueltos || []);
+        pagos.forEach(p => { p.devuelto = dev.has(p.id); });
+        ocultarTotales = !!d.ocultarTotales;
+        turno = d.turno || null;
+        pintarTurno();
+      }
       desfase = d.ahora - Date.now();
       actualizarPendientes(d.pendientes || []);
       if (primera && pagos.length) mostrarUltimo(pagos[pagos.length - 1], false);
@@ -415,12 +448,106 @@
   };
   setInterval(renderPendientes, 15000); // refresca los "hace X min"
 
+  // ---------- Devoluciones ----------
+  function opcionesCobro(p) {
+    const acc = el('div', 'acc');
+    const cerrar = el('button', null, 'Cerrar'); cerrar.onclick = cerrarModal;
+    const marcar = el('button', null, p.devuelto ? 'Deshacer devolución' : '↩️ Marcar como devuelto');
+    marcar.onclick = async () => {
+      if (!p.devuelto && !confirm('¿Le devolviste esta plata al cliente? Queda registrado y deja de sumar en el total.')) return;
+      await nubePost({ accion: 'devolver', id: p.id, deshacer: !!p.devuelto }).catch(() => {});
+      cerrarModal(); consultar();
+    };
+    acc.append(marcar, cerrar);
+    abrirModal([
+      el('div', 'chico', (p.pagador || 'Sin nombre') + ' · ' + p.origen + ' · ' + hora(p.ts)),
+      el('div', 'm', fmt(p.monto)),
+      el('div', 'nota', p.devuelto ? 'Este cobro está marcado como DEVUELTO.' : 'Si le devolviste la plata al cliente (cambio, error, venta anulada), marcalo acá.'),
+      acc,
+    ]);
+  }
+
+  // ---------- Turnos (opcional) ----------
+  function pintarTurno() {
+    $('filaTurno').classList.remove('oculto');
+    const b = $('btnTurno');
+    b.classList.toggle('abierto', !!turno);
+    b.textContent = turno ? '🕘 Turno de ' + turno.empleado + ' · desde las ' + hora(turno.inicio) + ' — Cerrar turno' : '🕘 Abrir turno (opcional)';
+  }
+
+  function campo(etiqueta, id, tipo = 'text', ph = '') {
+    const w = el('div'); const l = el('label', null, etiqueta);
+    const i = document.createElement(tipo === 'area' ? 'textarea' : 'input');
+    i.id = id; if (tipo !== 'area') i.type = tipo; if (tipo === 'number') i.inputMode = 'decimal'; i.placeholder = ph;
+    w.append(l, i); return w;
+  }
+
+  $('btnTurno').onclick = () => (turno ? cerrarTurno() : abrirTurno());
+
+  function abrirTurno() {
+    const acc = el('div', 'acc');
+    const ok = el('button', null, 'Abrir turno'), no = el('button', null, 'Cancelar');
+    no.onclick = cerrarModal;
+    ok.onclick = async () => {
+      const r = await nubePost({ accion: 'abrir_turno', empleado: $('tEmpleado').value }).catch(() => null);
+      if (!r || !r.ok) { alert((r && r.error) || 'No se pudo abrir el turno'); return; }
+      turno = r.turno; pintarTurno(); cerrarModal();
+    };
+    acc.append(ok, no);
+    abrirModal([el('div', 'm', '🕘'), el('div', 'nota', 'Al cerrar el turno vas a ver lo que entró por transferencia mientras estuviste, y cargás el efectivo y las tarjetas. El resumen le llega al dueño.'),
+      campo('¿Quién está en la caja?', 'tEmpleado', 'text', 'Tu nombre'), acc]);
+    setTimeout(() => $('tEmpleado').focus(), 50);
+  }
+
+  function cerrarTurno() {
+    const acc = el('div', 'acc');
+    const ok = el('button', null, 'Cerrar turno'), no = el('button', null, 'Cancelar');
+    no.onclick = cerrarModal;
+    ok.onclick = async () => {
+      const r = await nubePost({ accion: 'cerrar_turno', efectivo: $('tEfectivo').value, tarjetas: $('tTarjetas').value, notas: $('tNotas').value }).catch(() => null);
+      if (!r || !r.ok) { alert((r && r.error) || 'No se pudo cerrar el turno'); return; }
+      turno = null; pintarTurno(); mostrarCierre(r.resumen);
+    };
+    acc.append(ok, no);
+    abrirModal([el('div', 'chico', 'Turno de ' + turno.empleado + ' · desde las ' + hora(turno.inicio)),
+      el('div', 'nota', 'Contá lo que hay en la caja y cargalo. Las transferencias las suma la app sola.'),
+      campo('Efectivo en la caja ($)', 'tEfectivo', 'number', '0'),
+      campo('Cobrado con tarjeta / posnet ($)', 'tTarjetas', 'number', '0'),
+      campo('Notas (opcional)', 'tNotas', 'area', 'Ej.: faltó cambio, se rompió algo…'), acc]);
+  }
+
+  function mostrarCierre(r) {
+    const fila = (a, b) => { const d = el('div', 'fila-res'); d.append(el('span', null, a), el('b', null, b)); return d; };
+    const nodos = [el('div', 'chico', '✅ Turno cerrado · ' + r.empleado), el('div', 'nota', hora(r.inicio) + ' a ' + hora(r.fin))];
+    let texto = 'Cierre de turno – ' + r.empleado + '\n' + hora(r.inicio) + ' a ' + hora(r.fin) + '\n';
+    if (!r.oculto) {
+      nodos.push(fila('Transferencias (' + r.cantidad_transferencias + ')', fmt(r.total_transferencias)));
+      Object.entries(r.por_origen || {}).forEach(([o, v]) => nodos.push(fila('  · ' + o + ' (' + v.cantidad + ')', fmt(v.total))));
+      if (r.devoluciones) nodos.push(fila('Devoluciones', '− ' + fmt(r.devoluciones)));
+      texto += 'Transferencias (' + r.cantidad_transferencias + '): ' + fmt(r.total_transferencias) + '\n';
+    }
+    nodos.push(fila('Efectivo', fmt(r.efectivo)), fila('Tarjetas', fmt(r.tarjetas)));
+    texto += 'Efectivo: ' + fmt(r.efectivo) + '\nTarjetas: ' + fmt(r.tarjetas);
+    if (!r.oculto) {
+      const total = r.total_transferencias + r.efectivo + r.tarjetas;
+      nodos.push(fila('TOTAL DEL TURNO', fmt(total)));
+      texto += '\nTOTAL: ' + fmt(total);
+    } else nodos.push(el('div', 'nota', 'El resumen completo le llega al dueño en su panel.'));
+    const acc = el('div', 'acc');
+    const wa = el('button', null, '📤 Mandar por WhatsApp');
+    wa.onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+    const listo = el('button', null, 'Listo'); listo.onclick = cerrarModal;
+    acc.append(wa, listo); nodos.push(acc);
+    abrirModal(nodos);
+  }
+
   let inicio = Date.now();
   let timer = null;
   function arrancar() {
     $('pinPantalla').classList.add('oculto');
     $('caja').classList.remove('oculto');
     inicio = Date.now();
+    mantenerEncendida();
     consultar();
     clearInterval(timer);
     timer = setInterval(consultar, NUBE ? 3000 : 1500);
