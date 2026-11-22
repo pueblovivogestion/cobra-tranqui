@@ -275,7 +275,10 @@
       d.pagos.forEach(p => {
         if (pagos.some(x => x.id === p.id)) return;
         pagos.push(p);
-        if (!primera) { mostrarUltimo(p, true); pitido(); if (!vinculados.has(p.id)) hablar(p); }
+        // Solo se anuncia (cartel verde + voz) si el pago es reciente. Los viejos que llegan tarde
+        // (por ejemplo al conectar una cuenta nueva) se agregan a la lista en silencio.
+        const reciente = (d.ahora || Date.now()) - p.ts < 10 * 60000;
+        if (!primera && reciente) { mostrarUltimo(p, true); pitido(); if (!vinculados.has(p.id)) hablar(p); }
       });
       umbral = d.umbral ?? umbral;
       minutos = d.minutosAlerta ?? minutos;
