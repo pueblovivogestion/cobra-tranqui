@@ -49,6 +49,18 @@
   .horas div { flex:1; background:var(--ok2); border-radius:3px 3px 0 0; min-height:2px; position:relative; }
   .horas div.vacia { background:#26302b; }
   .horas-eje { display:flex; justify-content:space-between; color:var(--sub); font-size:11px; margin-top:4px; }
+  #graf30 svg { width:100%; height:150px; display:block; }
+  .eje30 { display:flex; justify-content:space-between; color:var(--sub); font-size:11px; margin-top:2px; }
+  .proy { background:#111815; border-radius:12px; padding:14px; line-height:1.5; }
+  .proy .grande { font-size:26px; font-weight:800; }
+  .proy .sube { color:#7ee2a8; } .proy .baja { color:#ff8a80; }
+  .dia-sem { display:grid; grid-template-columns:44px 1fr auto; gap:8px; align-items:center; margin:5px 0; font-size:14px; }
+  .dia-sem .barra { height:14px; background:#2c3a33; border-radius:7px; overflow:hidden; }
+  .dia-sem .barra i { display:block; height:100%; background:var(--ok2); border-radius:7px; }
+  .dia-sem.mejor b { color:#7ee2a8; } .dia-sem.peor b { color:#ff8a80; }
+  .calor { display:grid; grid-template-columns:34px repeat(24, 1fr); gap:2px; font-size:10px; color:var(--sub); }
+  .calor .c { aspect-ratio:1; border-radius:2px; background:#16a34a; }
+  .calor .h { text-align:center; }
   label.check { display:flex; gap:10px; align-items:center; color:var(--txt); font-size:16px; }
   label.check input { width:22px; height:22px; }
   @media (max-width:480px) { .kpis strong { font-size:16px; } }
@@ -160,6 +172,29 @@
       <ul id="porMedio"></ul>
       <div class="fila"><button id="btnExcel" class="sec">⬇️ Descargar Excel</button></div>
     </div>
+
+    <details class="carta" id="detNegocio">
+      <summary><b>Cómo viene el negocio</b><span>Últimos 30 días, proyección del mes, mejores días y horarios</span></summary>
+      <div class="tabs" id="tabsNegocio">
+        <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Todo (con efectivo y tarjetas)</button>
+      </div>
+      <p class="ayuda" id="notaNegocio"></p>
+
+      <h3>Últimos 30 días</h3>
+      <div id="graf30"></div>
+      <p class="ayuda">Barras: lo cobrado cada día. Línea: promedio de los últimos 7 días (muestra la tendencia).</p>
+
+      <h3>Proyección del mes</h3>
+      <div id="proyeccion" class="proy"></div>
+
+      <h3>Mejor y peor día de la semana</h3>
+      <div id="diasSemana"></div>
+      <p class="ayuda">Promedio de las últimas 8 semanas.</p>
+
+      <h3>¿Cuándo vendés más? (día × hora)</h3>
+      <div id="mapaCalor"></div>
+      <p class="ayuda">Más oscuro = más ventas. Promedio de las últimas 8 semanas.</p>
+    </details>
 
     <div class="carta">
       <h2>Últimos cobros</h2>
@@ -370,6 +405,7 @@
       li.append(a, m); ul.append(li);
     });
     cargarVentas();
+    if ($('detNegocio').open) cargarNegocio();
     if ($('detTurnos').open || !refrescar.turnosCargados) { cargarTurnos(); refrescar.turnosCargados = true; }
   }
 
@@ -447,6 +483,122 @@
     a.download = 'ventas-' + periodo + '-' + new Date().toISOString().slice(0, 10) + '.csv';
     a.click(); URL.revokeObjectURL(a.href);
   };
+
+  // ---------- Cómo viene el negocio ----------
+  // Mismos gráficos para "solo transferencias" y para "todo" (transferencias + efectivo y tarjetas de los turnos)
+  let modoNegocio = 'transf', negocio = null;
+  const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const claveDia = d => d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+
+  async function cargarNegocio() {
+    const desde = new Date(); desde.setHours(0, 0, 0, 0); desde.setDate(desde.getDate() - 56);
+    const mesAnt = new Date(); mesAnt.setHours(0, 0, 0, 0); mesAnt.setDate(1); mesAnt.setMonth(mesAnt.getMonth() - 1);
+    const ini = desde < mesAnt ? desde : mesAnt;
+    const [{ data: cs }, { data: ts }] = await Promise.all([
+      sb.from('cobros').select('monto, ts, prueba, devuelto').eq('comercio_id', com.id).gte('ts', ini.toISOString()).limit(20000),
+      sb.from('turnos').select('inicio, fin, efectivo, tarjetas').eq('comercio_id', com.id).not('fin', 'is', null)
+        .gte('inicio', ini.toISOString()).limit(2000),
+    ]);
+    negocio = { cobros: (cs || []).filter(c => !c.prueba && !c.devuelto), turnos: ts || [] };
+    pintarNegocio();
+  }
+
+  // Movimientos {t, v}. En "todo", el efectivo y las tarjetas de cada turno se reparten parejo entre
+  // las horas que duró (el cierre de turno da el total, no venta por venta).
+  function movimientos() {
+    const m = negocio.cobros.map(c => ({ t: new Date(c.ts), v: Number(c.monto) }));
+    if (modoNegocio === 'todo') {
+      negocio.turnos.forEach(t => {
+        const extra = Number(t.efectivo || 0) + Number(t.tarjetas || 0); if (!extra) return;
+        const a = new Date(t.inicio).getTime(), b = Math.max(new Date(t.fin).getTime(), a + 60000);
+        const horas = Math.max(1, Math.ceil((b - a) / 3600000));
+        for (let i = 0; i < horas; i++) m.push({ t: new Date(a + i * 3600000), v: extra / horas });
+      });
+    }
+    return m;
+  }
+
+  function pintarNegocio() {
+    if (!negocio) return;
+    const hayTurnos = negocio.turnos.some(t => Number(t.efectivo || 0) + Number(t.tarjetas || 0) > 0);
+    $('notaNegocio').textContent = modoNegocio === 'todo'
+      ? (hayTurnos ? 'Transferencias + efectivo y tarjetas cargados en los cierres de turno (repartidos entre las horas de cada turno).'
+        : 'Todavía no hay cierres de turno con efectivo o tarjetas: por ahora da lo mismo que "solo transferencias".')
+      : 'Solo lo que entra por transferencia o Mercado Pago.';
+    const mov = movimientos();
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+
+    // Últimos 30 días: barras por día + promedio móvil de 7 días
+    const dias = []; for (let i = 29; i >= 0; i--) { const d = new Date(hoy); d.setDate(d.getDate() - i); dias.push({ d, v: 0 }); }
+    const idx = {}; dias.forEach((x, i) => { idx[claveDia(x.d)] = i; });
+    mov.forEach(x => { const i = idx[claveDia(x.t)]; if (i !== undefined) dias[i].v += x.v; });
+    const max = Math.max(...dias.map(x => x.v), 1), W = 300, H = 100, bw = W / 30;
+    let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+    dias.forEach((x, i) => {
+      const h = x.v / max * (H - 6);
+      svg += `<rect x="${i * bw + 1}" y="${H - h}" width="${bw - 2}" height="${h}" rx="1" fill="${i === 29 ? '#7ee2a8' : '#16a34a'}" opacity=".85">` +
+        `<title>${x.d.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit' })}: ${fmt(Math.round(x.v))}</title></rect>`;
+    });
+    const pts = dias.map((x, i) => {
+      const s = dias.slice(Math.max(0, i - 6), i + 1), p = s.reduce((a, y) => a + y.v, 0) / s.length;
+      return `${i * bw + bw / 2},${H - p / max * (H - 6)}`;
+    });
+    svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="#ffe58a" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+    const fd = d => d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+    $('graf30').innerHTML = svg + `<div class="eje30"><span>${fd(dias[0].d)}</span><span>${fd(dias[15].d)}</span><span>hoy</span></div>`;
+
+    // Proyección del mes
+    const ahora = new Date(), iniMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1), iniAnt = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
+    const delMes = mov.filter(x => x.t >= iniMes).reduce((a, x) => a + x.v, 0);
+    const mesPasado = mov.filter(x => x.t >= iniAnt && x.t < iniMes).reduce((a, x) => a + x.v, 0);
+    const fr = (ahora - iniMes) / (finMes - iniMes), diasMes = Math.round((finMes - iniMes) / 86400000);
+    const nomMes = ahora.toLocaleDateString('es-AR', { month: 'long' }), nomAnt = iniAnt.toLocaleDateString('es-AR', { month: 'long' });
+    if (fr < 0.1 || !delMes) {
+      $('proyeccion').innerHTML = `Llevás <b>${fmt(Math.round(delMes))}</b> en ${nomMes}. La proyección aparece desde el día ${Math.ceil(diasMes * 0.1) + 1}, cuando hay más datos.`;
+    } else {
+      const proy = delMes / fr;
+      let comp = '';
+      if (mesPasado > 0) {
+        const pct = Math.round((proy - mesPasado) / mesPasado * 100);
+        comp = `<br><span class="${pct >= 0 ? 'sube' : 'baja'}">${pct >= 0 ? '▲' : '▼'} ${Math.abs(pct)}% vs ${nomAnt} (${fmt(Math.round(mesPasado))})</span>`;
+      }
+      $('proyeccion').innerHTML = `A este ritmo vas a cerrar ${nomMes} en<div class="grande">${fmt(Math.round(proy))}</div>` +
+        `Llevás ${fmt(Math.round(delMes))} en ${Math.ceil(fr * diasMes)} de ${diasMes} días.${comp}`;
+    }
+
+    // Mejor y peor día de la semana (promedio de 8 semanas)
+    const desde8 = new Date(hoy); desde8.setDate(desde8.getDate() - 55);
+    const porDia = Array(7).fill(0); mov.forEach(x => { if (x.t >= desde8) porDia[x.t.getDay()] += x.v; });
+    const prom = porDia.map(v => v / 8), orden = [1, 2, 3, 4, 5, 6, 0], maxD = Math.max(...prom, 1);
+    const con = prom.map((v, i) => ({ v, i })).filter(x => x.v > 0);
+    const mejor = con.length ? con.reduce((a, b) => (b.v > a.v ? b : a)).i : -1;
+    const peor = con.length > 1 ? con.reduce((a, b) => (b.v < a.v ? b : a)).i : -1;
+    $('diasSemana').innerHTML = orden.map(i => `<div class="dia-sem${i === mejor ? ' mejor' : ''}${i === peor ? ' peor' : ''}">` +
+      `<b>${DIAS[i]}</b><div class="barra"><i style="width:${prom[i] / maxD * 100}%"></i></div>` +
+      `<span>${fmt(Math.round(prom[i]))}${i === mejor ? ' 🏆' : ''}${i === peor ? ' 📉' : ''}</span></div>`).join('');
+
+    // Mapa de calor día × hora
+    const celdas = Array.from({ length: 7 }, () => Array(24).fill(0));
+    mov.forEach(x => { if (x.t >= desde8) celdas[x.t.getDay()][x.t.getHours()] += x.v; });
+    const maxC = Math.max(...celdas.flat(), 1);
+    let html = '<div class="calor"><span></span>' + Array.from({ length: 24 }, (_, h) => `<span class="h">${h % 6 === 0 ? h : ''}</span>`).join('');
+    orden.forEach(d => {
+      html += `<span>${DIAS[d]}</span>` + celdas[d].map((v, h) =>
+        `<span class="c" style="opacity:${v ? 0.15 + 0.85 * v / maxC : 0.06}" title="${DIAS[d]} ${h} h: ${fmt(Math.round(v / 8))} promedio"></span>`).join('');
+    });
+    $('mapaCalor').innerHTML = html + '</div>';
+  }
+
+  $('tabsNegocio').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    modoNegocio = b.dataset.m;
+    [...$('tabsNegocio').children].forEach(x => x.classList.toggle('activa', x === b));
+    pintarNegocio();
+  };
+  $('detNegocio').addEventListener('toggle', () => { if ($('detNegocio').open && com) cargarNegocio(); });
+  // Para probar los gráficos con datos de ejemplo (no toca la base)
+  window.__probarNegocio = datos => { negocio = datos; pintarNegocio(); };
 
   // ---------- Cierres de turno ----------
   async function cargarTurnos() {
