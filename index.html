@@ -59,6 +59,11 @@
   .eje30 { display:flex; justify-content:space-between; color:var(--sub); font-size:11px; margin-top:2px; }
   .proy { background:#111815; border-radius:12px; padding:14px; line-height:1.5; }
   .proy .grande { font-size:26px; font-weight:800; }
+  .metricas { background:#111815; border-radius:12px; padding:4px 14px; margin:8px 0; }
+  .metrica { display:grid; grid-template-columns:1fr auto; gap:2px 12px; padding:9px 0; border-bottom:1px solid #26302b; }
+  .metrica:last-child { border-bottom:0; } .metrica span { color:var(--sub); font-size:14px; } .metrica b { font-size:16px; text-align:right; }
+  .metrica em { grid-column:1 / -1; font-style:normal; font-size:12px; color:var(--sub); text-align:right; }
+  .metrica .sube, .ayuda .sube { color:#7ee2a8; } .metrica .baja, .ayuda .baja { color:#ff8a80; }
   .frase { background:#111815; border-radius:12px; padding:14px; margin:10px 0; line-height:1.6; font-size:16px; }
   .frase .grande { font-size:24px; font-weight:800; } .frase .sube { color:#7ee2a8; } .frase .baja { color:#ff8a80; }
   .semana { display:grid; grid-template-columns:110px 1fr auto; gap:8px; align-items:center; margin:7px 0; font-size:14px; }
@@ -178,36 +183,39 @@
       <div id="linkCaja" class="oculto"></div>
     </div>
 
-    <div class="carta">
-      <h2>Tus ventas</h2>
+    <details class="carta" id="detEstad" open>
+      <summary><b>Estadísticas del negocio</b><span>Facturación, proyección, días y horarios de mayor actividad</span></summary>
       <div class="tabs" id="tabsNegocio">
-        <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Todo (con efectivo y tarjetas)</button>
+        <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Total (incl. efectivo y tarjetas)</button>
       </div>
-      <p class="ayuda" id="notaNegocio" style="margin:0 0 12px"></p>
+      <p class="ayuda" id="notaNegocio" style="margin:0 0 6px"></p>
 
-      <div class="frase" id="nMes"></div>
-      <div class="frase" id="nDias"></div>
-      <div class="frase" id="nHoras"></div>
+      <h3>Mes en curso</h3>
+      <div class="metricas" id="nMes"></div>
 
-      <h3>📊 Últimas 4 semanas</h3>
+      <h3>Rendimiento por día y horario</h3>
+      <div class="metricas" id="nDias"></div>
+      <div class="metricas" id="nHoras"></div>
+
+      <h3>Evolución semanal</h3>
       <div id="nSemanas"></div>
 
-      <h3>En detalle</h3>
+      <h3>Detalle por período</h3>
       <div class="tabs" id="tabsPeriodo">
-        <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">7 días</button><button data-p="mes">Este mes</button>
+        <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">Últimos 7 días</button><button data-p="mes">Mes en curso</button>
       </div>
       <div class="kpis">
-        <div><span>Total cobrado</span><strong id="kTotal">$ 0</strong><em id="kComp"></em></div>
-        <div><span>Ventas</span><strong id="kCant">0</strong></div>
-        <div><span>Venta promedio</span><strong id="kProm">$ 0</strong></div>
+        <div><span>Facturación</span><strong id="kTotal">$ 0</strong><em id="kComp"></em></div>
+        <div><span>Operaciones</span><strong id="kCant">0</strong></div>
+        <div><span>Ticket promedio</span><strong id="kProm">$ 0</strong></div>
       </div>
-      <h3>¿A qué hora vendés más?</h3>
+      <h3>Distribución horaria</h3>
       <div id="horas" class="horas"></div>
-      <h3>Por medio de pago</h3>
+      <h3>Medios de pago</h3>
       <ul id="porMedio"></ul>
-      <p class="ayuda">No incluye pruebas ni devoluciones.</p>
-      <div class="fila"><button id="btnExcel" class="sec">⬇️ Descargar Excel</button></div>
-    </div>
+      <p class="ayuda">Excluye operaciones de prueba y devoluciones.</p>
+      <div class="fila"><button id="btnExcel" class="sec">Exportar a Excel</button></div>
+    </details>
 
     <div class="carta">
       <h2>Últimos cobros</h2>
@@ -224,7 +232,7 @@
       <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total y la cantidad de ventas del día</label>
       <p class="ayuda">La caja sigue mostrando cada cobro que entra (los últimos 10), pero no cuánto se vendió. En el cierre de turno, el empleado carga el efectivo sin ver lo que la app sumó (cierre "a ciegas"): vos ves el resumen completo acá.</p>
     </details>
-
+
 
     <details class="carta">
       <summary><b>Comprobantes con foto</b><span>Para cuando el cliente te muestra la transferencia pero la plata todavía no llegó (opcional)</span></summary>
@@ -422,7 +430,11 @@
     return { ini, fin: ahora, antIni, antFin };
   }
 
-  // Una sola carga de datos (cobros y turnos) para toda la tarjeta "Tus ventas"
+  // "Estadísticas del negocio" recuerda si el dueño la dejó abierta o cerrada
+  try { if (localStorage.getItem('estadCerrada') === '1') $('detEstad').open = false; } catch (e) {}
+  $('detEstad').addEventListener('toggle', () => { try { localStorage.setItem('estadCerrada', $('detEstad').open ? '0' : '1'); } catch (e) {} });
+
+  // Una sola carga de datos (cobros y turnos) para toda la tarjeta de estadísticas
   async function cargarVentas(traer = true) {
     if (traer || !negocio) await cargarNegocio();
     if (!negocio) return;
@@ -524,76 +536,78 @@
     if (!negocio) return;
     const hayTurnos = negocio.turnos.some(t => Number(t.efectivo || 0) + Number(t.tarjetas || 0) > 0);
     $('notaNegocio').textContent = modoNegocio === 'todo'
-      ? (hayTurnos ? 'Suma las transferencias más el efectivo y las tarjetas de los cierres de turno.'
-        : 'Todavía no hay cierres de turno con efectivo o tarjetas: por ahora da lo mismo que "solo transferencias".')
-      : 'Solo lo que entra por transferencia o Mercado Pago.';
+      ? (hayTurnos ? 'Incluye transferencias, efectivo y tarjetas declarados en los cierres de turno.'
+        : 'Sin cierres de turno con efectivo o tarjetas registrados: los valores coinciden con “Solo transferencias”.')
+      : 'Incluye únicamente cobros por transferencia y Mercado Pago.';
     const mov = movimientos();
     const plata = v => fmt(Math.round(v));
+    const fila = (k, v, extra = '') => `<div class="metrica"><span>${k}</span><b>${v}</b>${extra ? `<em>${extra}</em>` : ''}</div>`;
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const primero = mov.length ? Math.min(...mov.map(x => x.t.getTime())) : Date.now();
     const diasConDatos = (Date.now() - primero) / 86400000;
 
-    // 📅 Este mes
+    // Mes en curso
     const ahora = new Date(), iniMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
     const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1), iniAnt = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
     const delMes = mov.filter(x => x.t >= iniMes).reduce((a, x) => a + x.v, 0);
     const mesPasado = mov.filter(x => x.t >= iniAnt && x.t < iniMes).reduce((a, x) => a + x.v, 0);
-    const fr = (ahora - iniMes) / (finMes - iniMes);
-    const nomMes = ahora.toLocaleDateString('es-AR', { month: 'long' }), nomAnt = iniAnt.toLocaleDateString('es-AR', { month: 'long' });
-    let mes = `📅 <b>Este mes</b><br>Llevás <span class="grande">${plata(delMes)}</span>`;
+    const fr = (ahora - iniMes) / (finMes - iniMes), diasMes = Math.round((finMes - iniMes) / 86400000);
+    const nomAnt = iniAnt.toLocaleDateString('es-AR', { month: 'long' });
+    let mes = fila('Facturado a la fecha', plata(delMes), `día ${Math.ceil(fr * diasMes)} de ${diasMes}`);
     if (fr >= 0.1 && delMes > 0) {
       const proy = delMes / fr;
-      mes += `<br>A este ritmo cerrás ${nomMes} en <b>${plata(proy)}</b>.`;
+      mes += fila('Proyección de cierre', plata(proy));
       if (mesPasado > 0) {
         const pct = Math.round((proy - mesPasado) / mesPasado * 100);
-        mes += pct >= 0 ? `<br><span class="sube">▲ Es ${pct}% más que ${nomAnt}.</span>` : `<br><span class="baja">▼ Es ${-pct}% menos que ${nomAnt}.</span>`;
+        mes += `<div class="metrica"><span>Variación vs. ${nomAnt}</span><b class="${pct >= 0 ? 'sube' : 'baja'}">${pct >= 0 ? '+' : '−'}${Math.abs(pct)}%</b><em>${nomAnt}: ${plata(mesPasado)}</em></div>`;
       }
-    } else mes += '<br>En unos días te muestro cómo vas a cerrar el mes.';
+    } else mes += fila('Proyección de cierre', '—', 'disponible desde el día ' + (Math.ceil(diasMes * 0.1) + 1));
     $('nMes').innerHTML = mes;
 
-    // 🏆 Mejor y peor día (promedio de las últimas 8 semanas)
-    const NOMBRES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    // Días de la semana (promedio de hasta 8 semanas)
+    const NOMBRES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const desde8 = new Date(hoy); desde8.setDate(desde8.getDate() - 55);
     const semanas = Math.max(1, Math.min(8, Math.ceil(diasConDatos / 7)));
     const porDia = Array(7).fill(0); mov.forEach(x => { if (x.t >= desde8) porDia[x.t.getDay()] += x.v; });
     const con = porDia.map((v, i) => ({ v: v / semanas, i })).filter(x => x.v > 0);
     if (diasConDatos < 14 || con.length < 2) {
-      $('nDias').innerHTML = '🏆 <b>Tus mejores días</b><br>Con un par de semanas más de ventas te digo cuál es tu mejor día y cuál el más flojo.';
+      $('nDias').innerHTML = fila('Día de mayor venta', '—', 'requiere al menos 2 semanas de registros');
     } else {
       const mejor = con.reduce((a, b) => (b.v > a.v ? b : a)), peor = con.reduce((a, b) => (b.v < a.v ? b : a));
-      $('nDias').innerHTML = `🏆 <b>Tu mejor día es el ${NOMBRES[mejor.i]}</b>: vendés en promedio <b>${plata(mejor.v)}</b>.<br>` +
-        `📉 El más flojo es el ${NOMBRES[peor.i]}: <b>${plata(peor.v)}</b>.`;
+      $('nDias').innerHTML = fila('Día de mayor venta', NOMBRES[mejor.i], 'promedio ' + plata(mejor.v)) +
+        fila('Día de menor venta', NOMBRES[peor.i], 'promedio ' + plata(peor.v));
     }
 
-    // 🕐 Horario fuerte y tranquilo (bloques de 3 horas, últimas 8 semanas)
+    // Franjas horarias (bloques de 3 horas)
     const porHora = Array(24).fill(0); mov.forEach(x => { if (x.t >= desde8) porHora[x.t.getHours()] += x.v; });
     const abiertas = porHora.map((v, h) => (v > 0 ? h : -1)).filter(h => h >= 0);
+    const hh = h => String(h).padStart(2, '0') + ':00';
     if (diasConDatos < 7 || abiertas.length < 3) {
-      $('nHoras').innerHTML = '🕐 <b>Tus horarios</b><br>Con una semana más de ventas te digo a qué hora vendés más.';
+      $('nHoras').innerHTML = fila('Franja de mayor actividad', '—', 'requiere al menos 1 semana de registros');
     } else {
-      const desdeH = abiertas[0], hastaH = abiertas[abiertas.length - 1];
       const bloques = [];
-      for (let h = desdeH; h + 2 <= hastaH; h++) bloques.push({ h, v: porHora[h] + porHora[h + 1] + porHora[h + 2] });
-      const fuerte = bloques.reduce((a, b) => (b.v > a.v ? b : a));
-      const tranqui = bloques.reduce((a, b) => (b.v < a.v ? b : a));
-      let txt = `🕐 <b>Tu horario fuerte es de ${fuerte.h} a ${fuerte.h + 3} hs.</b>`;
-      if (tranqui.h !== fuerte.h && tranqui.v < fuerte.v * 0.6) txt += `<br>El más tranquilo, de ${tranqui.h} a ${tranqui.h + 3} hs.`;
+      for (let h = abiertas[0]; h + 2 <= abiertas[abiertas.length - 1]; h++) bloques.push({ h, v: porHora[h] + porHora[h + 1] + porHora[h + 2] });
+      const fuerte = bloques.reduce((a, b) => (b.v > a.v ? b : a)), tranqui = bloques.reduce((a, b) => (b.v < a.v ? b : a));
+      let txt = fila('Franja de mayor actividad', `${hh(fuerte.h)} – ${hh(fuerte.h + 3)}`);
+      if (tranqui.h !== fuerte.h && tranqui.v < fuerte.v * 0.6) txt += fila('Franja de menor actividad', `${hh(tranqui.h)} – ${hh(tranqui.h + 3)}`);
       $('nHoras').innerHTML = txt;
     }
 
-    // 📊 Últimas 4 semanas (bloques de 7 días hacia atrás desde hoy)
+    // Evolución semanal (bloques de 7 días hacia atrás desde hoy)
     const fin0 = new Date(hoy); fin0.setDate(fin0.getDate() + 1);
-    const etiquetas = ['Esta semana', 'Semana pasada', 'Hace 2 semanas', 'Hace 3 semanas'];
+    const etiquetas = ['Últimos 7 días', 'Semana anterior', 'Hace 2 semanas', 'Hace 3 semanas'];
     const sem = etiquetas.map((e, i) => {
       const hasta = new Date(fin0); hasta.setDate(hasta.getDate() - 7 * i);
       const desde = new Date(hasta); desde.setDate(desde.getDate() - 7);
       return { e, v: mov.filter(x => x.t >= desde && x.t < hasta).reduce((a, x) => a + x.v, 0) };
     });
     const maxS = Math.max(...sem.map(s => s.v), 1);
+    let varSem = '';
+    if (sem[1].v > 0) { const p = Math.round((sem[0].v - sem[1].v) / sem[1].v * 100); varSem = `<p class="ayuda">Variación semanal: <b class="${p >= 0 ? 'sube' : 'baja'}">${p >= 0 ? '+' : '−'}${Math.abs(p)}%</b></p>`; }
     $('nSemanas').innerHTML = sem.map((s, i) => `<div class="semana${i === 0 ? ' actual' : ''}"><span>${s.e}</span>` +
-      `<div class="barra"><i style="width:${s.v / maxS * 100}%"></i></div><b>${plata(s.v)}</b></div>`).join('') +
-      '<p class="ayuda">"Esta semana" son los últimos 7 días, contando hoy.</p>';
+      `<div class="barra"><i style="width:${s.v / maxS * 100}%"></i></div><b>${plata(s.v)}</b></div>`).join('') + varSem;
   }
+
   $('tabsNegocio').onclick = e => {
     const b = e.target.closest('button'); if (!b) return;
     modoNegocio = b.dataset.m;
