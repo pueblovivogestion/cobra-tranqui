@@ -38,6 +38,10 @@
   .opcion:hover { border-color:var(--ok2); }
   .opcion .emoji { font-size:34px; } .opcion b { font-size:20px; } .opcion span { color:var(--sub); font-size:15px; line-height:1.4; }
   .ayuda { color:var(--sub); font-size:14px; margin:6px 0 0; }
+  .hoy-tit { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .hoy-tit h2 { margin:0; } .comp { font-size:14px; } .comp.sube { color:#7ee2a8; } .comp.baja { color:#ff8a80; }
+  .hoy-total { font-size:44px; font-weight:800; margin:6px 0 2px; }
+  .carta.hoy ul { margin-top:12px; }
   h3 { font-size:15px; color:var(--sub); margin:18px 0 8px; font-weight:600; }
   .tabs { display:flex; gap:6px; margin-bottom:12px; } .tabs button { background:#2c3a33; font-size:14px; padding:8px 12px; }
   .tabs button.activa { background:var(--ok2); }
@@ -108,37 +112,16 @@
 
   <!-- Panel -->
   <section id="panel" class="oculto">
-    <div class="carta">
-      <h2>1. Tu comercio</h2>
-      <label>¿Cómo se llama tu comercio?</label><input id="nombre" placeholder="Ej.: Kiosco Lola">
-      <p class="ayuda">Es el nombre que ve tu empleado arriba en la pantalla de la caja.</p>
-      <div class="fila"><button id="btnGuardar">Guardar</button></div>
+    <!-- Lo único que se ve de entrada: cómo va el día -->
+    <div class="carta hoy">
+      <div class="hoy-tit"><h2 id="tituloHoy">Hoy</h2><span id="hComp" class="comp"></span></div>
+      <div class="hoy-total" id="hTotal">$ 0</div>
+      <div class="sub" id="hCant">0 ventas</div>
+      <ul id="cobros"></ul>
     </div>
 
-    <div class="carta">
-      <h2>2. Conectá tu Mercado Pago</h2>
-      <p class="sub" style="margin:0">Así la caja ve al instante cada transferencia o pago que entra a tu cuenta. Funciona aunque tengas iPhone y estés lejos del local.</p>
-      <div class="fila"><span id="estadoMp" class="estado">…</span></div>
-      <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
-    </div>
-
-    <div class="carta">
-      <h2>3. Abrí la caja en el mostrador</h2>
-      <p class="sub" style="margin:0">En el celular, tablet o compu de la caja (sirve iPhone) entrá a esta misma página, tocá <b>"Es la caja del local"</b> y escribí este código. O escaneá el QR con la cámara.</p>
-      <label>Código de la caja</label><div id="codigoCaja" class="codigo"></div>
-      <div id="qr"></div>
-      <p class="ayuda">Compartilo solo con tus empleados: quien lo tenga ve tus cobros.</p>
-      <div class="fila">
-        <button id="btnAbrirCaja" class="sec">Ver la caja</button>
-        <button id="btnSimular" class="sec">Simular un cobro de prueba</button>
-        <button id="btnCopiarCaja" class="sec">Copiar link</button>
-        <button id="btnNuevoLink" class="sec">Cambiar código</button>
-      </div>
-      <div id="linkCaja" class="oculto"></div>
-    </div>
-
-    <div class="carta">
-      <h2>Tus ventas</h2>
+    <details class="carta" id="detStats">
+      <summary><b>Más estadísticas</b><span>Semana, mes, horas pico, medios de pago y Excel</span></summary>
       <div class="tabs" id="tabsPeriodo">
         <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">7 días</button><button data-p="mes">Este mes</button>
       </div>
@@ -147,64 +130,69 @@
         <div><span>Ventas</span><strong id="kCant">0</strong></div>
         <div><span>Venta promedio</span><strong id="kProm">$ 0</strong></div>
       </div>
-      <p class="ayuda" id="kNota">Cuenta solo los cobros por transferencia que ve la app (sin efectivo ni tarjetas, salvo lo cargado en los cierres de turno). No incluye pruebas ni devoluciones.</p>
       <h3>¿A qué hora vendés más?</h3>
       <div id="horas" class="horas"></div>
       <h3>Por medio de pago</h3>
       <ul id="porMedio"></ul>
+      <p class="ayuda">Cuenta los cobros que ve la app. No incluye pruebas ni devoluciones.</p>
       <div class="fila"><button id="btnExcel" class="sec">⬇️ Descargar Excel</button></div>
-    </div>
-
-    <div class="carta">
-      <h2>Últimos cobros</h2>
-      <ul id="cobros"></ul>
-    </div>
+    </details>
 
     <details class="carta" id="detTurnos">
-      <summary><b>Cierres de turno</b><span>Si tus empleados abren y cierran turno en la caja, acá ves cada cierre</span></summary>
+      <summary><b>Cierres de turno</b><span>Si tus empleados abren y cierran turno en la caja</span></summary>
       <ul id="turnos"></ul>
     </details>
 
-    <details class="carta">
-      <summary><b>Opciones de la caja</b><span>Qué puede ver tu empleado</span></summary>
-      <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total y la cantidad de ventas del día</label>
-      <p class="ayuda">La caja sigue mostrando cada cobro que entra (los últimos 10), pero no cuánto se vendió. En el cierre de turno, el empleado carga el efectivo sin ver lo que la app sumó (cierre "a ciegas"): vos ves el resumen completo acá.</p>
-    </details>
+    <details class="carta" id="detConfig">
+      <summary><b>Configuración</b><span id="resumenConfig">Tu comercio, Mercado Pago y la caja</span></summary>
 
-    <details class="carta">
-      <summary><b>¿Cobrás también en otros bancos o billeteras?</b><span>Ualá, Cuenta DNI, Galicia, Naranja X… (opcional, solo Android)</span></summary>
-      <p class="sub">Mercado Pago ya está cubierto. Si además te transfieren a otras cuentas, tu celular Android puede avisarle a la caja cada vez que te llega la notificación del banco:</p>
-      <ol class="pasos">
-        <li>Instalá la app <b>Cobrá Tranqui</b> en tu celular Android (el que recibe las notificaciones de tus bancos).</li>
-        <li>Abrila y dale permiso para leer notificaciones.</li>
-        <li>En <b>"Vincular con la nube"</b> escribí este código:</li>
-      </ol>
+      <h3>Nombre del comercio</h3>
+      <input id="nombre" placeholder="Ej.: Kiosco Lola">
+      <p class="ayuda">Lo ve tu empleado arriba en la caja.</p>
+      <div class="fila"><button id="btnGuardar">Guardar</button></div>
+
+      <h3>Mercado Pago</h3>
+      <div class="fila" style="margin-top:0"><span id="estadoMp" class="estado">…</span></div>
+      <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
+
+      <h3>Código para la caja</h3>
+      <p class="ayuda" style="margin:0 0 6px">En el aparato de la caja abrí esta página, tocá "Es la caja del local" y escribí el código (o escaneá el QR).</p>
+      <div id="codigoCaja" class="codigo"></div>
+      <div id="qr" class="oculto"></div>
+      <div class="fila">
+        <button id="btnVerQr" class="sec">Mostrar QR</button>
+        <button id="btnAbrirCaja" class="sec">Ver la caja</button>
+        <button id="btnSimular" class="sec">Simular un cobro</button>
+        <button id="btnCopiarCaja" class="sec">Copiar link</button>
+        <button id="btnNuevoLink" class="sec">Cambiar código</button>
+      </div>
+      <div id="linkCaja" class="oculto"></div>
+
+      <h3>Qué ve tu empleado</h3>
+      <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle el total y la cantidad de ventas del día</label>
+      <p class="ayuda">La caja muestra cada cobro que entra, pero no cuánto se vendió. En el cierre de turno carga el efectivo sin ver lo que sumó la app.</p>
+
+      <h3>Otros bancos y billeteras (opcional, Android)</h3>
+      <p class="ayuda" style="margin:0 0 6px">Si también te transfieren a Ualá, Cuenta DNI, Galicia, etc.: instalá la app Cobrá Tranqui en tu Android, dale permiso para leer notificaciones y escribí este código en "Vincular con la nube".</p>
       <div id="codigoAndroid" class="codigo"></div>
       <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button></div>
-    </details>
 
-    <details class="carta">
-      <summary><b>Comprobantes con foto</b><span>Para cuando el cliente te muestra la transferencia pero la plata todavía no llegó (opcional)</span></summary>
-      <p class="sub">A veces una transferencia tarda unos minutos. En la caja, el empleado puede sacarle una foto al comprobante del cliente: la app lo revisa y lo deja <b>"pendiente"</b> hasta que la plata entra de verdad.</p>
-      <label>Si la plata tarda, el empleado puede entregar igual hasta:</label>
+      <h3>Comprobantes con foto (opcional)</h3>
+      <p class="ayuda" style="margin:0 0 6px">Si la transferencia tarda, el empleado le saca foto al comprobante y queda "pendiente" hasta que la plata llega.</p>
+      <label>Hasta qué monto puede entregar igual mientras espera:</label>
       <div class="pesos"><span>$</span><input id="umbral" type="number" inputmode="numeric"></div>
-      <p class="ayuda">Por arriba de ese monto, la caja le dice que espere a que se acredite. Si no querés arriesgar nunca, poné 0.</p>
-      <label>Si no llega en estos minutos, la caja avisa "NO LLEGÓ":</label>
+      <label>Avisar "NO LLEGÓ" después de (minutos):</label>
       <input id="minutos" type="number" inputmode="numeric">
-      <label>Tus alias o CVU (separados por coma)</label>
+      <label>Tus alias o CVU (para detectar transferencias a otra cuenta):</label>
       <input id="cuentas" placeholder="mi.alias.mp, otro.alias">
-      <p class="ayuda">Sirve para detectar comprobantes de transferencias hechas a <b>otra</b> cuenta (un truco común de los estafadores).</p>
       <div class="fila"><button id="btnGuardar2">Guardar</button></div>
-    </details>
 
-    <div class="carta">
-      <h2>Este aparato</h2>
-      <p class="sub" style="margin:0">¿Vas a dejar este celular o tablet en el mostrador? Pasalo a modo caja. Para volver a tu panel, en la caja tocá "Cambiar de modo".</p>
-      <div class="fila">
+      <h3>Este aparato</h3>
+      <div class="fila" style="margin-top:0">
         <button id="btnModoCaja" class="sec">🧾 Usar este aparato como caja</button>
         <button id="btnSalir" class="sec">Cerrar sesión</button>
       </div>
-    </div>
+    </details>
   </section>
 </main>
 
@@ -335,6 +323,13 @@
     if (!e || !e.conectado) { el.textContent = 'No conectado'; el.className = 'estado'; $('btnMp').textContent = 'Conectar con Mercado Pago'; }
     else if (e.ultimo_error) { el.textContent = '⚠️ ' + e.ultimo_error; el.className = 'estado mal'; $('btnMp').textContent = 'Volver a conectar'; }
     else { el.textContent = '✅ Conectado' + (e.mp_nickname ? ' como ' + e.mp_nickname : ''); el.className = 'estado ok'; $('btnMp').textContent = 'Volver a conectar'; }
+    // Configuración: plegada cuando ya está todo listo; abierta (y avisando) si falta Mercado Pago
+    const mpListo = e && e.conectado && !e.ultimo_error;
+    $('resumenConfig').textContent = mpListo
+      ? 'Mercado Pago conectado ✅ · Código de la caja: ' + (com.codigo_caja || '').replace(/^(.{4})(.{4})$/, '$1 $2')
+      : '⚠️ Falta conectar Mercado Pago — tocá acá';
+    if (!refrescar.yaAbri && !mpListo) { $('detConfig').open = true; refrescar.yaAbri = true; }
+    $('tituloHoy').textContent = 'Hoy' + (com.nombre && com.nombre !== 'Mi comercio' ? ' en ' + com.nombre : '');
 
     const { data: an } = await sb.from('android_estado').select('ultimo_ping').eq('comercio_id', com.id).maybeSingle();
     const ea = $('estadoAndroid');
@@ -343,7 +338,7 @@
     else { ea.textContent = '⚠️ Último contacto ' + cuando(an.ultimo_ping); ea.className = 'estado mal'; }
 
     const { data: cobros } = await sb.from('cobros').select('monto, pagador, origen, ts, prueba, devuelto').eq('comercio_id', com.id)
-      .order('ts', { ascending: false }).limit(15);
+      .order('ts', { ascending: false }).limit(5);
     const ul = $('cobros'); ul.innerHTML = '';
     if (!cobros || !cobros.length) ul.innerHTML = '<li><span class="d">Todavía no entró ningún cobro.</span></li>';
     (cobros || []).forEach(c => {
@@ -370,24 +365,44 @@
     return { ini, fin: ahora, antIni, antFin };
   }
 
-  async function cargarVentas() {
-    const r = rango(periodo);
-    const { data } = await sb.from('cobros').select('monto, origen, fuente, pagador, ts, prueba, devuelto')
-      .eq('comercio_id', com.id).gte('ts', r.antIni.toISOString()).order('ts').limit(10000);
-    const todas = (data || []).filter(c => !c.prueba && !c.devuelto);
-    ventas = todas.filter(c => new Date(c.ts) >= r.ini);
-    const anteriores = todas.filter(c => new Date(c.ts) >= r.antIni && new Date(c.ts) <= r.antFin);
-    const suma = l => l.reduce((a, c) => a + Number(c.monto), 0);
-    const total = suma(ventas), totAnt = suma(anteriores);
+  // Se traen una vez los cobros desde el mes pasado y se calcula todo en el navegador
+  let datos = [];
+  const suma = l => l.reduce((a, c) => a + Number(c.monto), 0);
+  function calc(p) {
+    const r = rango(p);
+    const lista = datos.filter(c => new Date(c.ts) >= r.ini);
+    const ant = datos.filter(c => { const t = new Date(c.ts); return t >= r.antIni && t <= r.antFin; });
+    return { lista, total: suma(lista), totAnt: suma(ant) };
+  }
+  function comparar(elem, c, contra) {
+    if (c.totAnt > 0) {
+      const pct = Math.round((c.total - c.totAnt) / c.totAnt * 100);
+      elem.textContent = (pct >= 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs ' + contra;
+      elem.className = elem.className.replace(/ ?(sube|baja)/g, '') + (pct >= 0 ? ' sube' : ' baja');
+    } else elem.textContent = '';
+  }
+
+  async function cargarVentas(traer = true) {
+    if (traer) {
+      const desde = new Date(); desde.setHours(0, 0, 0, 0); desde.setDate(1); desde.setMonth(desde.getMonth() - 1);
+      const { data } = await sb.from('cobros').select('monto, origen, pagador, ts, prueba, devuelto')
+        .eq('comercio_id', com.id).gte('ts', desde.toISOString()).order('ts').limit(10000);
+      datos = (data || []).filter(c => !c.prueba && !c.devuelto);
+    }
+    // Tarjeta "Hoy" (lo único visible de entrada)
+    const h = calc('hoy');
+    $('hTotal').textContent = fmt(h.total);
+    $('hCant').textContent = h.lista.length + (h.lista.length === 1 ? ' venta' : ' ventas');
+    comparar($('hComp'), h, 'ayer');
+
+    // "Más estadísticas"
+    const c = calc(periodo);
+    ventas = c.lista;
+    const total = c.total;
     $('kTotal').textContent = fmt(total);
     $('kCant').textContent = ventas.length;
     $('kProm').textContent = fmt(ventas.length ? total / ventas.length : 0);
-    const comp = $('kComp');
-    const contra = { hoy: 'ayer a esta hora', semana: 'los 7 días anteriores', mes: 'el mes pasado a esta altura' }[periodo];
-    if (totAnt > 0) {
-      const pct = Math.round((total - totAnt) / totAnt * 100);
-      comp.textContent = (pct >= 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs ' + contra; comp.className = pct >= 0 ? 'sube' : 'baja';
-    } else { comp.textContent = ''; }
+    comparar($('kComp'), c, { hoy: 'ayer', semana: 'semana anterior', mes: 'mes pasado' }[periodo]);
 
     // Ventas por hora del día
     const porHora = Array(24).fill(0); ventas.forEach(c => porHora[new Date(c.ts).getHours()] += Number(c.monto));
@@ -416,7 +431,11 @@
     const b = e.target.closest('button'); if (!b) return;
     periodo = b.dataset.p;
     [...$('tabsPeriodo').children].forEach(x => x.classList.toggle('activa', x === b));
-    cargarVentas();
+    cargarVentas(false);
+  };
+  $('btnVerQr').onclick = () => {
+    const q = $('qr'); q.classList.toggle('oculto');
+    $('btnVerQr').textContent = q.classList.contains('oculto') ? 'Mostrar QR' : 'Ocultar QR';
   };
 
   // Excel (CSV con separador ";" y BOM, así Excel en español lo abre bien)
