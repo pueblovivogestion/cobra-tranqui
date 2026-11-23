@@ -49,6 +49,15 @@
   #filaTurno { margin:0 16px 8px; }
   #btnTurno { width:100%; background:#22302a; font-size:16px; font-weight:600; border:1px solid #34413b; }
   #btnTurno.abierto { background:#123d2c; border-color:#16a34a; }
+  #btnPantalla { margin:0 16px 8px; width:calc(100% - 32px); background:#22302a; font-size:15px; font-weight:600; border:1px solid #34413b; }
+  #btnPantalla.si { border-color:#16a34a; }
+  #sinTurno { position:fixed; inset:0; z-index:9; background:rgba(11,15,13,.96); display:flex; align-items:center; justify-content:center; padding:16px; }
+  #sinTurno .cartel { background:var(--carta); border-radius:18px; padding:24px 20px; width:100%; max-width:440px; text-align:center; }
+  #sinTurno h2 { color:var(--txt); font-size:24px; margin:8px 0; }
+  #sinTurno p { color:var(--sub); font-size:16px; margin:0 0 16px; }
+  #sinTurno input { width:100%; font-size:22px; padding:12px; border-radius:12px; border:1px solid #34413b; background:#111815; color:var(--txt); text-align:center; margin-bottom:12px; }
+  #sinTurno button { width:100%; }
+  #sinTurno .err { color:#ff8a80; min-height:1.2em; margin-top:8px; }
   li.devuelto { opacity:.55; } li.devuelto .m { text-decoration:line-through; }
   .devuelto-tag { background:#5a1a17; color:#ffb4ab; font-size:12px; padding:2px 6px; border-radius:6px; margin-left:6px; }
   li.tocable { cursor:pointer; }
@@ -99,7 +108,8 @@
     <div class="quien"></div>
   </div>
   <button id="sonido">🔈 Tocá para activar el aviso por voz</button>
-  <div id="filaTurno" class="oculto"><button id="btnTurno">🕘 Abrir turno (opcional)</button></div>
+  <div id="filaTurno" class="oculto"><button id="btnTurno">🕘 Abrir turno</button></div>
+  <button id="btnPantalla">🔆 Pantalla siempre prendida: SÍ</button>
   <button id="foto">📷 Me muestran un comprobante</button>
   <input id="archivo" type="file" accept="image/*" capture="environment" class="oculto">
   <div id="pendientesBox" class="oculto">
@@ -174,9 +184,31 @@
 
   // ---------- Pantalla siempre encendida mientras la caja está abierta ----------
   let wakeLock = null;
+  let pantallaPrendida = (() => { try { return localStorage.getItem('pantallaPrendida') !== '0'; } catch (e) { return true; } })();
   async function mantenerEncendida() {
+    if (!pantallaPrendida) return;
     try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
   }
+  function pintarPantalla() {
+    const b = document.getElementById('btnPantalla'); if (!b) return;
+    if (!('wakeLock' in navigator)) {
+      b.textContent = '🔆 Este navegador no puede dejar la pantalla prendida: poné el bloqueo automático del equipo en "Nunca"';
+      b.classList.remove('si'); return;
+    }
+    b.textContent = pantallaPrendida ? '🔆 Pantalla siempre prendida: SÍ (tocá para desactivar)' : '🌙 Pantalla siempre prendida: NO (tocá para activar)';
+    b.classList.toggle('si', pantallaPrendida);
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    pintarPantalla();
+    document.getElementById('btnPantalla').onclick = async () => {
+      if (!('wakeLock' in navigator)) return;
+      pantallaPrendida = !pantallaPrendida;
+      try { localStorage.setItem('pantallaPrendida', pantallaPrendida ? '1' : '0'); } catch (e) {}
+      if (pantallaPrendida) await mantenerEncendida();
+      else if (wakeLock) { try { await wakeLock.release(); } catch (e) {} wakeLock = null; }
+      pintarPantalla();
+    };
+  });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') mantenerEncendida(); });
   document.addEventListener('click', () => { if (!wakeLock || wakeLock.released) mantenerEncendida(); }, { passive: true });
   const fmt = n => '$ ' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -472,12 +504,45 @@
     ]);
   }
 
-  // ---------- Turnos (opcional) ----------
+  // ---------- Turnos (obligatorios: los cobros se vigilan solo con un turno abierto) ----------
   function pintarTurno() {
     $('filaTurno').classList.remove('oculto');
     const b = $('btnTurno');
     b.classList.toggle('abierto', !!turno);
-    b.textContent = turno ? '🕘 Turno de ' + turno.empleado + ' · desde las ' + hora(turno.inicio) + ' — Cerrar turno' : '🕘 Abrir turno (opcional)';
+    b.textContent = turno ? '🕘 Turno de ' + turno.empleado + ' · desde las ' + hora(turno.inicio) + ' — Cerrar turno' : '🕘 Abrir turno';
+    if (NUBE) cartelSinTurno(!turno);
+  }
+
+  // Sin turno abierto la caja está "cerrada": un cartel pide abrir el turno para empezar
+  function cartelSinTurno(mostrar) {
+    let c = $('sinTurno');
+    if (!c) {
+      c = el('div'); c.id = 'sinTurno';
+      const cartel = el('div', 'cartel');
+      const nombre = document.createElement('input');
+      nombre.id = 'sTurnoNombre'; nombre.maxLength = 40; nombre.placeholder = 'Tu nombre'; nombre.autocomplete = 'off';
+      try { nombre.value = localStorage.getItem('ultimoEmpleado') || ''; } catch (e) {}
+      const boton = el('button', null, 'Abrir turno'), err = el('div', 'err');
+      boton.onclick = async () => {
+        if (!nombre.value.trim()) { err.textContent = 'Escribí tu nombre'; return; }
+        boton.disabled = true; err.textContent = '';
+        const r = await nubePost({ accion: 'abrir_turno', empleado: nombre.value }).catch(() => null);
+        boton.disabled = false;
+        if (!r || !r.ok) {
+          // Si otro equipo ya abrió el turno, alcanza con ponerse al día
+          if (r && /abierto/.test(r.error || '')) { ciclo(); return; }
+          err.textContent = (r && r.error) || 'No se pudo abrir el turno. Revisá la conexión.'; return;
+        }
+        try { localStorage.setItem('ultimoEmpleado', nombre.value.trim()); } catch (e) {}
+        turno = r.turno; pintarTurno(); ciclo();
+      };
+      nombre.addEventListener('keydown', e => { if (e.key === 'Enter') boton.click(); });
+      cartel.append(el('div', 'm', '🕘'), el('h2', null, 'Caja cerrada'),
+        el('p', null, 'Para empezar a recibir los avisos de cobro, abrí el turno con tu nombre. Al terminar, cerralo desde el botón del turno.'),
+        nombre, boton, err);
+      c.append(cartel); document.body.append(c);
+    }
+    c.classList.toggle('oculto', !mostrar);
   }
 
   function campo(etiqueta, id, tipo = 'text', ph = '') {
@@ -496,7 +561,7 @@
     ok.onclick = async () => {
       const r = await nubePost({ accion: 'abrir_turno', empleado: $('tEmpleado').value }).catch(() => null);
       if (!r || !r.ok) { alert((r && r.error) || 'No se pudo abrir el turno'); return; }
-      turno = r.turno; pintarTurno(); cerrarModal();
+      turno = r.turno; pintarTurno(); cerrarModal(); ciclo();
     };
     acc.append(ok, no);
     abrirModal([el('div', 'm', '🕘'), el('div', 'nota', 'Al cerrar el turno vas a ver lo que entró por transferencia mientras estuviste, y cargás el efectivo y las tarjetas. El resumen le llega al dueño.'),
