@@ -496,7 +496,7 @@
     const ahora = new Date(), hoy = new Date(ahora); hoy.setHours(0, 0, 0, 0);
     const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
     const modo = modoNegocio === 'todo' ? 'Total (transferencias, efectivo y tarjetas de los turnos)' : 'Solo transferencias';
-    const generado = ahora.toLocaleDateString('es-AR') + ' ' + ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    const generado = ahora.toLocaleDateString('es-AR') + ' ' + ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
     const cabecera = (titulo, columnas) => [[{ v: titulo, s: 'titulo' }], [{ v: `Cobrá Tranqui · ${modo} · Generado el ${generado}`, s: 'nota' }], [],
       columnas.map(c => ({ v: c, s: 'encabezado' }))];
     const plata = v => ({ v: Math.round(v), s: 'plata' }), pct = v => (v === null ? '' : { v, s: 'pct' });
@@ -593,7 +593,7 @@
 
     const link = document.createElement('a');
     link.href = URL.createObjectURL(crearExcel(hojas));
-    link.download = 'cobra-tranqui-estadisticas-' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    link.download = 'cobra-tranqui-estadisticas-' + ahora.toLocaleDateString('en-CA') + '.xlsx';
     document.body.append(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(link.href), 5000);
   };
