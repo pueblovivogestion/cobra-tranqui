@@ -191,6 +191,8 @@
   let voz = false;
   let dia = new Date().toDateString();
   let pendientes = [];
+  const vivo = { ok: false, ws: null, latido: null, reintento: 1000 }; // aviso en vivo (ver escucharEnVivo)
+  let consultando = false, otraVez = false;
   let estadosPrev = null;
   let umbral = 20000;
   let minutos = 15;
@@ -357,14 +359,14 @@
     if (!(n > 0)) { alert('Monto inválido'); return; }
     if (NUBE) await nubePost({ accion: 'monto', id: p.id, monto: n }).catch(() => {});
     else await fetch(api('pendiente/monto', '&id=' + encodeURIComponent(p.id) + '&monto=' + encodeURIComponent(String(n).replace('.', ','))), { method: 'POST' }).catch(() => {});
-    cerrarModal(); consultar();
+    cerrarModal(); ciclo();
   }
 
   async function descartar(p) {
     if (!confirm('¿Descartar este comprobante? (por ejemplo, si el cliente pagó de otra forma)')) return;
     if (NUBE) await nubePost({ accion: 'descartar', id: p.id }).catch(() => {});
     else await fetch(api('pendiente/descartar', '&id=' + encodeURIComponent(p.id)), { method: 'POST' }).catch(() => {});
-    cerrarModal(); consultar();
+    cerrarModal(); ciclo();
   }
 
   function cerrarModal() { $('modal').classList.add('oculto'); }
@@ -442,7 +444,7 @@
       if (!d.ok) throw new Error(d.error || 'Error');
       umbral = d.umbral ?? umbral;
       mostrarResultado(d.pendiente);
-      consultar();
+      ciclo();
     } catch (e) {
       const listo = el('button', null, 'Cerrar'); listo.onclick = cerrarModal;
       const acc = el('div', 'acc'); acc.append(listo);
@@ -459,7 +461,7 @@
     marcar.onclick = async () => {
       if (!p.devuelto && !confirm('¿Le devolviste esta plata al cliente? Queda registrado y deja de sumar en el total.')) return;
       await nubePost({ accion: 'devolver', id: p.id, deshacer: !!p.devuelto }).catch(() => {});
-      cerrarModal(); consultar();
+      cerrarModal(); ciclo();
     };
     acc.append(marcar, cerrar);
     abrirModal([
@@ -551,13 +553,62 @@
     $('caja').classList.remove('oculto');
     inicio = Date.now();
     mantenerEncendida();
-    consultar();
-    clearInterval(timer);
-    timer = setInterval(consultar, NUBE ? 3000 : 1500);
+    clearTimeout(timer);
+    if (NUBE) escucharEnVivo();
+    ciclo();
   }
 
+  // Cada cuánto consulta. En la nube, los cobros llegan AL INSTANTE por el aviso en vivo (más abajo);
+  // la consulta periódica es solo de respaldo: 1 minuto, o 8 s si hay un comprobante esperando
+  // (para chequear Mercado Pago seguido) o si el aviso en vivo está caído.
+  function intervalo() {
+    if (!NUBE) return 1500;
+    if (!vivo.ok) return 10000;
+    return pendientes.some(p => p.estado === 'ESPERANDO') ? 8000 : 60000;
+  }
+  async function ciclo() {
+    if (consultando) { otraVez = true; return; } // ya hay una consulta en curso: repetir al terminar
+    consultando = true; clearTimeout(timer);
+    try { await consultar(); } finally { consultando = false; }
+    if (otraVez) { otraVez = false; return ciclo(); }
+    if (!$('caja').classList.contains('oculto')) timer = setTimeout(ciclo, intervalo());
+  }
+
+  // ---------- Aviso en vivo (Supabase Realtime, canal secreto derivado de la llave de la caja) ----------
+  async function canalCaja() {
+    const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('cobra-tranqui:' + NUBE.t)));
+    return 'caja-' + [...h.slice(0, 16)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  async function escucharEnVivo() {
+    if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY || vivo.ws) return;
+    const topico = 'realtime:' + await canalCaja();
+    const ws = new WebSocket(window.SUPABASE_URL.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' +
+      encodeURIComponent(window.SUPABASE_ANON_KEY) + '&vsn=1.0.0');
+    vivo.ws = ws;
+    let ref = 0;
+    const mandar = (topic, event, payload) => ws.send(JSON.stringify({ topic, event, payload, ref: String(++ref) }));
+    ws.onopen = () => {
+      mandar(topico, 'phx_join', { config: { broadcast: { self: false }, presence: { key: '' }, private: false } });
+      vivo.latido = setInterval(() => mandar('phoenix', 'heartbeat', {}), 25000);
+    };
+    ws.onmessage = e => {
+      let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.topic === topico && m.event === 'phx_reply' && m.payload?.status === 'ok' && !vivo.ok) {
+        vivo.ok = true; vivo.reintento = 1000; ciclo(); // al conectar, ponerse al día
+      }
+      if (m.topic === topico && m.event === 'broadcast') ciclo(); // entró un cobro: traerlo ya
+    };
+    ws.onclose = () => {
+      clearInterval(vivo.latido); vivo.ok = false; vivo.ws = null;
+      setTimeout(escucharEnVivo, vivo.reintento); vivo.reintento = Math.min(vivo.reintento * 2, 60000);
+    };
+    ws.onerror = () => { try { ws.close(); } catch (x) {} };
+  }
+  // Al volver a la pantalla (celular que estuvo bloqueado) se pone al día enseguida
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !$('caja').classList.contains('oculto')) ciclo(); });
+
   function salir(msg) {
-    clearInterval(timer);
+    clearTimeout(timer);
     pin = ''; guardar('pin', '');
     $('caja').classList.add('oculto');
     $('pinPantalla').classList.remove('oculto');
