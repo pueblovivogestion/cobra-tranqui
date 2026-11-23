@@ -174,8 +174,8 @@
       <div class="paso"><span>2</span><div>Abrila y tocá <b>"Dar acceso a notificaciones"</b>.</div></div>
       <div class="paso"><span>3</span><div>Bajá hasta <b>"Vincular con la nube"</b>, escribí este código y tocá <b>"Vincular"</b>:</div></div>
       <div id="codigoAndroid" class="codigo"></div>
-      <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button></div>
-      <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. Con iPhone esto no se puede (Apple no deja leer los avisos de otras apps).</p>
+      <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button><button id="btnNuevoAndroid" class="sec">Desvincular celular</button></div>
+      <p class="ayuda">El código sirve una sola vez: después de vincular, aparece otro para el próximo celular. Cuando diga <b>"✅ Celular conectado"</b>, listo. Con iPhone esto no se puede (Apple no deja leer los avisos de otras apps).</p>
     </details>
     </div>
 
@@ -184,7 +184,7 @@
       <p class="sub" style="margin:0">En el celular, tablet o compu de la caja (sirve iPhone) entrá a esta misma página, tocá <b>"Es la caja del local"</b> y escribí este código. O escaneá el QR con la cámara.</p>
       <label>Código de la caja</label><div id="codigoCaja" class="codigo"></div>
       <div id="qr"></div>
-      <p class="ayuda">Compartilo solo con tus empleados: quien lo tenga ve tus cobros.</p>
+      <p class="ayuda">El código sirve para vincular una caja, una sola vez: después cambia solo y las cajas ya vinculadas siguen andando. Si un empleado deja de trabajar con vos, tocá <b>"Cambiar código"</b> para desconectar todas las cajas.</p>
       <div class="fila">
         <button id="btnAbrirCaja" class="sec">Ver la caja</button>
         <button id="btnSimular" class="sec">Simular un cobro de prueba</button>
@@ -393,6 +393,9 @@
   }
 
   async function refrescar() {
+    // Los códigos cortos cambian cada vez que se usan: mostrar siempre el vigente
+    const { data: cods } = await sb.from('comercios').select('codigo_caja, codigo_android').eq('id', com.id).maybeSingle();
+    if (cods && (cods.codigo_caja !== com.codigo_caja || cods.codigo_android !== com.codigo_android)) { Object.assign(com, cods); pintar(); }
     // Una fila por cuenta de Mercado Pago conectada, cada una con su botón "Desvincular"
     const { data: cuentas } = await sb.rpc('estado_mp', { p_comercio: com.id });
     const ulMp = $('cuentasMp'); ulMp.innerHTML = '';
@@ -609,7 +612,7 @@
     document.querySelectorAll('.tip').forEach(x => x.remove());
     if (!el || !g) return;
     const r = el.getBoundingClientRect(), rg = g.getBoundingClientRect();
-    const tip = document.createElement('div'); tip.className = 'tip'; tip.innerHTML = el.dataset.tip;
+    const tip = document.createElement('div'); tip.className = 'tip'; tip.textContent = el.dataset.tip;
     tip.style.left = Math.min(Math.max(r.left + r.width / 2 - rg.left, 60), rg.width - 60) + 'px'; tip.style.top = (el.dataset.topY ? Number(el.dataset.topY) : r.top - rg.top) + 'px';
     g.append(tip);
   });
@@ -837,6 +840,15 @@
   $('btnSimular').onclick = async () => {
     await fetch(window.CAJA_NUBE_URL + '?t=' + com.token_caja, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'simular' }) });
     mensaje('Cobro de prueba enviado: tiene que aparecer en la caja.'); refrescar();
+  };
+  $('btnNuevoAndroid').onclick = async () => {
+    if (!confirm('El celular Android vinculado deja de mandar cobros hasta que lo vuelvas a vincular con el código nuevo. ¿Seguro?')) return;
+    const llave = [...crypto.getRandomValues(new Uint8Array(18))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const { data: codigo } = await sb.rpc('nuevo_codigo_caja');
+    const cambios = { token_android: llave }; if (codigo) cambios.codigo_android = codigo;
+    const { data, error } = await sb.from('comercios').update(cambios).eq('id', com.id).select().single();
+    if (error) return mensaje(error.message, false);
+    com = data; pintar(); mensaje('Celular desvinculado. Para volver a conectarlo usá el código nuevo.');
   };
   $('btnNuevoLink').onclick = async () => {
     if (!confirm('Las cajas vinculadas se desconectan y hay que volver a vincularlas con el código nuevo. ¿Seguro?')) return;
