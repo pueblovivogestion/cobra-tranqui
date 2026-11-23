@@ -226,7 +226,7 @@
       <h3>Medios de pago</h3>
       <div class="graf" id="porMedio"></div>
       <p class="ayuda">Excluye operaciones de prueba y devoluciones.</p>
-      <div class="fila"><button id="btnExcel" class="sec">Exportar a Excel</button></div>
+      <div class="fila"><button id="btnExcel" class="sec">Descargar todo en Excel</button></div>
     </details>
 
     <details class="carta" id="detCobros" open>
@@ -271,6 +271,7 @@
   </section>
 </main>
 
+<script src="excel.js"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
@@ -488,18 +489,113 @@
     [...$('tabsPeriodo').children].forEach(x => x.classList.toggle('activa', x === b));
     cargarVentas(false);
   };
-  // Excel (CSV con separador ";" y BOM, así Excel en español lo abre bien)
+  // Excel: todas las estadísticas (cada una en su hoja, con su gráfico) + el detalle de cobros
   $('btnExcel').onclick = () => {
-    const filas = [['Fecha', 'Hora', 'Monto', 'Medio', 'Pagador']].concat(ventas.map(c => {
-      const d = c.t;
-      return [d.toLocaleDateString('es-AR'), d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-        String(c.v).replace('.', ','), c.origen, c.pagador || ''];
-    }));
-    const csv = '﻿' + filas.map(f => f.map(x => '"' + String(x).replace(/"/g, '""') + '"').join(';')).join('\r\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = 'ventas-' + periodo + '-' + new Date().toISOString().slice(0, 10) + '.csv';
-    a.click(); URL.revokeObjectURL(a.href);
+    if (!negocio || typeof crearExcel !== 'function') return;
+    const mov = movimientos(), suma = l => l.reduce((a, x) => a + x.v, 0);
+    const ahora = new Date(), hoy = new Date(ahora); hoy.setHours(0, 0, 0, 0);
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    const modo = modoNegocio === 'todo' ? 'Total (transferencias, efectivo y tarjetas de los turnos)' : 'Solo transferencias';
+    const generado = ahora.toLocaleDateString('es-AR') + ' ' + ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    const cabecera = (titulo, columnas) => [[{ v: titulo, s: 'titulo' }], [{ v: `Cobrá Tranqui · ${modo} · Generado el ${generado}`, s: 'nota' }], [],
+      columnas.map(c => ({ v: c, s: 'encabezado' }))];
+    const plata = v => ({ v: Math.round(v), s: 'plata' }), pct = v => (v === null ? '' : { v, s: 'pct' });
+    const primero = mov.length ? Math.min(...mov.map(x => x.t.getTime())) : Date.now();
+    const diasConDatos = (Date.now() - primero) / 86400000;
+    const hojas = [];
+
+    // 1. Resumen por período
+    const res = cabecera('Resumen', ['Período', 'Facturación', 'Operaciones', 'Ticket promedio', 'Período anterior', 'Variación']);
+    [['hoy', 'Hoy', 'Ayer a la misma hora'], ['semana', 'Últimos 7 días', '7 días anteriores'], ['mes', 'Mes en curso', 'Mes anterior a la misma altura']].forEach(([p, nombre]) => {
+      const r = rango(p), act = mov.filter(x => x.t >= r.ini), ant = mov.filter(x => x.t >= r.antIni && x.t <= r.antFin);
+      const reales = act.filter(x => x.cobro), tot = suma(act), totAnt = suma(ant);
+      res.push([{ v: nombre, s: 'etiqueta' }, plata(tot), { v: reales.length, s: 'entero' }, plata(reales.length ? suma(reales) / reales.length : 0),
+        plata(totAnt), pct(totAnt > 0 ? (tot - totAnt) / totAnt : null)]);
+    });
+    res.push([], [{ v: 'Período anterior: ayer a la misma hora / los 7 días anteriores / el mes pasado hasta el mismo día. Excluye pruebas y devoluciones.', s: 'nota' }]);
+    hojas.push({ nombre: 'Resumen', anchos: [18, 15, 13, 16, 17, 11], filas: res });
+
+    // 2. Mes en curso
+    const iniMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1), finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1);
+    const iniAnt = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
+    const delMes = suma(mov.filter(x => x.t >= iniMes)), mesPasado = suma(mov.filter(x => x.t >= iniAnt && x.t < iniMes));
+    const fr = (ahora - iniMes) / (finMes - iniMes), diasMes = Math.round((finMes - iniMes) / 86400000);
+    const nomMes = cap(ahora.toLocaleDateString('es-AR', { month: 'long' })), nomAnt = cap(iniAnt.toLocaleDateString('es-AR', { month: 'long' }));
+    const mes = cabecera('Mes en curso', ['Concepto', 'Monto']);
+    mes.push([nomAnt + ' (cierre)', plata(mesPasado)], [nomMes + ' a la fecha', plata(delMes)]);
+    const proy = fr >= 0.1 && delMes > 0 ? delMes / fr : null;
+    if (proy !== null) mes.push([nomMes + ' proyectado', plata(proy)]);
+    const nMes = mes.length - 4;
+    mes.push([], ['Día del mes', `${Math.ceil(fr * diasMes)} de ${diasMes}`]);
+    if (proy !== null && mesPasado > 0) mes.push([`Proyección vs. ${nomAnt}`, pct((proy - mesPasado) / mesPasado)]);
+    if (proy === null) mes.push([{ v: 'La proyección de cierre se calcula desde el día ' + (Math.ceil(diasMes * 0.1) + 1) + ' del mes.', s: 'nota' }]);
+    hojas.push({ nombre: 'Mes en curso', anchos: [26, 16], filas: mes,
+      grafico: { titulo: 'Facturación del mes', horizontal: true, cat: [0, 4, 3 + nMes], val: [1, 4, 3 + nMes], lugar: [3, 1, 11, 14] } });
+
+    // 3. Días de la semana (promedio de hasta 8 semanas)
+    const NOMBRES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'], orden = [1, 2, 3, 4, 5, 6, 0];
+    const desde8 = new Date(hoy); desde8.setDate(desde8.getDate() - 55);
+    const semanas = Math.max(1, Math.min(8, Math.ceil(diasConDatos / 7)));
+    const porDia = Array(7).fill(0); mov.forEach(x => { if (x.t >= desde8) porDia[x.t.getDay()] += x.v; });
+    const prom = orden.map(i => porDia[i] / semanas), mejorDia = prom.indexOf(Math.max(...prom));
+    const dias = cabecera('Ventas por día de la semana', ['Día', 'Promedio por día', 'Total del período']);
+    orden.forEach((i, k) => dias.push([NOMBRES[i], plata(prom[k]), plata(porDia[i])]));
+    dias.push([], [{ v: `Promedio de las últimas ${semanas} semana${semanas > 1 ? 's' : ''}.${diasConDatos < 14 ? ' Con menos de 2 semanas de registros la comparación es poco representativa.' : ''}`, s: 'nota' }]);
+    hojas.push({ nombre: 'Días', anchos: [14, 17, 17], filas: dias,
+      grafico: { titulo: 'Promedio de ventas por día', cat: [0, 4, 10], val: [1, 4, 10], resaltar: Math.max(...prom) > 0 ? [mejorDia] : [], lugar: [4, 1, 13, 17] } });
+
+    // 4. Horarios (promedio por día, solo horas con ventas)
+    const porHora = Array(24).fill(0); mov.forEach(x => { if (x.t >= desde8) porHora[x.t.getHours()] += x.v; });
+    const nDias = Math.max(1, Math.round(Math.min(56, diasConDatos)));
+    const conVenta = porHora.map((v, h) => (v > 0 ? h : -1)).filter(h => h >= 0);
+    const hh = h => String(h).padStart(2, '0') + ':00';
+    const hor = cabecera('Ventas por horario', ['Horario', 'Promedio por día', 'Total del período']);
+    if (conVenta.length) {
+      const d0 = conVenta[0], d1 = conVenta[conVenta.length - 1];
+      let pico = d0, mejor = -1;
+      for (let h = d0; h <= Math.max(d0, d1 - 2); h++) { const s = porHora[h] + (porHora[h + 1] || 0) + (porHora[h + 2] || 0); if (s > mejor) { mejor = s; pico = h; } }
+      for (let h = d0; h <= d1; h++) hor.push([`${hh(h)} a ${hh(h + 1)}`, plata(porHora[h] / nDias), plata(porHora[h])]);
+      const n = d1 - d0 + 1;
+      hor.push([], ['Franja de mayor venta', `${hh(pico)} a ${hh(Math.min(pico + 3, 24))}`]);
+      hojas.push({ nombre: 'Horarios', anchos: [16, 17, 17], filas: hor,
+        grafico: { titulo: 'Promedio de ventas por hora', cat: [0, 4, 3 + n], val: [1, 4, 3 + n], etiquetas: false,
+          resaltar: [0, 1, 2].map(k => pico - d0 + k).filter(k => k < n), lugar: [4, 1, 14, 19] } });
+    } else { hor.push(['Sin ventas registradas']); hojas.push({ nombre: 'Horarios', anchos: [16, 17, 17], filas: hor }); }
+
+    // 5. Evolución semanal
+    const fd = d => d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+    const sem = cabecera('Evolución semanal', ['Semana', 'Desde', 'Hasta', 'Monto']);
+    const fin0 = new Date(hoy); fin0.setDate(fin0.getDate() + 1);
+    const vs = ['Hace 3 sem.', 'Hace 2 sem.', 'Sem. anterior', 'Últimos 7 días'].map((e, j) => {
+      const hasta = new Date(fin0); hasta.setDate(hasta.getDate() - 7 * (3 - j));
+      const desde = new Date(hasta); desde.setDate(desde.getDate() - 7); const ult = new Date(hasta); ult.setDate(ult.getDate() - 1);
+      const v = suma(mov.filter(x => x.t >= desde && x.t < hasta)); sem.push([e, fd(desde), fd(ult), plata(v)]); return v;
+    });
+    if (vs[2] > 0) sem.push([], ['Variación vs. semana anterior', '', '', pct((vs[3] - vs[2]) / vs[2])]);
+    hojas.push({ nombre: 'Semanas', anchos: [28, 9, 9, 15], filas: sem,
+      grafico: { titulo: 'Ventas por semana', cat: [0, 4, 7], val: [3, 4, 7], resaltar: [3], lugar: [5, 1, 13, 16] } });
+
+    // 6. Medios de pago (mes en curso)
+    const delMesMov = mov.filter(x => x.t >= iniMes), totMes = suma(delMesMov), medios = {};
+    delMesMov.forEach(x => { const m = String(x.origen).split(' · ')[0]; medios[m] = (medios[m] || 0) + x.v; });
+    const ord = Object.entries(medios).sort((x, y) => y[1] - x[1]);
+    const med = cabecera('Medios de pago · ' + nomMes, ['Medio', 'Monto', 'Participación']);
+    ord.forEach(([m, v]) => med.push([m, plata(v), pct(totMes ? v / totMes : 0)]));
+    if (ord.length) { med.push([{ v: 'Total', s: 'etiqueta' }, { v: Math.round(totMes), s: 'plataFuerte' }, pct(1)]);
+      hojas.push({ nombre: 'Medios de pago', anchos: [34, 15, 13], filas: med,
+        grafico: { titulo: 'Facturación por medio de pago', horizontal: true, cat: [0, 4, 3 + ord.length], val: [1, 4, 3 + ord.length], lugar: [4, 1, 12, 14] } });
+    } else { med.push(['Sin ventas en el mes']); hojas.push({ nombre: 'Medios de pago', anchos: [34, 15, 13], filas: med }); }
+
+    // 7. Detalle de cobros
+    const cob = cabecera('Detalle de cobros', ['Fecha', 'Hora', 'Monto', 'Medio', 'Pagador']);
+    mov.filter(x => x.cobro).sort((x, y) => y.t - x.t).forEach(c => cob.push([{ v: c.t, s: 'fecha' }, { v: c.t, s: 'hora' }, plata(c.v), c.origen, c.pagador || '']));
+    hojas.push({ nombre: 'Cobros', anchos: [12, 8, 14, 34, 30], filas: cob });
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(crearExcel(hojas));
+    link.download = 'cobra-tranqui-estadisticas-' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 5000);
   };
 
   // ---------- Gráficos (SVG simple, sin librerías) ----------
