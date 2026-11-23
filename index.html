@@ -59,6 +59,17 @@
   .eje30 { display:flex; justify-content:space-between; color:var(--sub); font-size:11px; margin-top:2px; }
   .proy { background:#111815; border-radius:12px; padding:14px; line-height:1.5; }
   .proy .grande { font-size:26px; font-weight:800; }
+  .graf { position:relative; margin:6px 0 4px; }
+  .graf svg { width:100%; display:block; overflow:visible; }
+  .graf .vacio { color:var(--sub); font-size:14px; background:#111815; border-radius:12px; padding:16px; text-align:center; }
+  .graf .pie { color:var(--sub); font-size:13px; margin-top:6px; } .graf .pie b { color:var(--txt); }
+  .graf .pie .sube { color:#7ee2a8; } .graf .pie .baja { color:#ff8a80; }
+  .tip { position:absolute; pointer-events:none; background:#0b0f0d; border:1px solid #34413b; color:var(--txt); font-size:13px;
+    padding:6px 9px; border-radius:8px; white-space:nowrap; transform:translate(-50%, -100%); margin-top:-8px; z-index:3; box-shadow:0 4px 12px rgba(0,0,0,.4); }
+  .hbar { display:grid; grid-template-columns:minmax(90px, 38%) 1fr auto; gap:10px; align-items:center; margin:8px 0; font-size:14px; }
+  .hbar span { color:var(--sub); } .hbar b { font-variant-numeric:tabular-nums; }
+  .hbar .pista { height:12px; border-radius:0 4px 4px 0; background:transparent; }
+  .hbar .pista i { display:block; height:100%; border-radius:0 4px 4px 0; }
   .metricas { background:#111815; border-radius:12px; padding:4px 14px; margin:8px 0; }
   .metrica { display:grid; grid-template-columns:1fr auto; gap:2px 12px; padding:9px 0; border-bottom:1px solid #26302b; }
   .metrica:last-child { border-bottom:0; } .metrica span { color:var(--sub); font-size:14px; } .metrica b { font-size:16px; text-align:right; }
@@ -191,14 +202,15 @@
       <p class="ayuda" id="notaNegocio" style="margin:0 0 6px"></p>
 
       <h3>Mes en curso</h3>
-      <div class="metricas" id="nMes"></div>
+      <div class="graf" id="nMes"></div>
 
-      <h3>Rendimiento por día y horario</h3>
-      <div class="metricas" id="nDias"></div>
-      <div class="metricas" id="nHoras"></div>
+      <h3>Ventas por día de la semana</h3>
+      <div class="graf" id="nDias"></div>
+      <h3>Ventas por horario</h3>
+      <div class="graf" id="nHoras"></div>
 
       <h3>Evolución semanal</h3>
-      <div id="nSemanas"></div>
+      <div class="graf" id="nSemanas"></div>
 
       <h3>Detalle por período</h3>
       <div class="tabs" id="tabsPeriodo">
@@ -210,9 +222,9 @@
         <div><span>Ticket promedio</span><strong id="kProm">$ 0</strong></div>
       </div>
       <h3>Distribución horaria</h3>
-      <div id="horas" class="horas"></div>
+      <div class="graf" id="horas"></div>
       <h3>Medios de pago</h3>
-      <ul id="porMedio"></ul>
+      <div class="graf" id="porMedio"></div>
       <p class="ayuda">Excluye operaciones de prueba y devoluciones.</p>
       <div class="fila"><button id="btnExcel" class="sec">Exportar a Excel</button></div>
     </details>
@@ -457,27 +469,15 @@
       comp.textContent = (pct >= 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs ' + contra; comp.className = pct >= 0 ? 'sube' : 'baja';
     } else { comp.textContent = ''; }
 
-    // Ventas por hora del día
+    // Distribución horaria del período
     const porHora = Array(24).fill(0); act.forEach(x => { porHora[x.t.getHours()] += x.v; });
-    const max = Math.max(...porHora, 1);
-    $('horas').innerHTML = '';
-    porHora.forEach((v, h) => {
-      const b = document.createElement('div'); b.style.height = Math.max(2, v / max * 100) + '%';
-      if (!v) b.className = 'vacia'; b.title = h + ' h: ' + fmt(Math.round(v)); $('horas').append(b);
-    });
-    if (!$('horasEje')) { const e = document.createElement('div'); e.id = 'horasEje'; e.className = 'horas-eje'; e.innerHTML = '<span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>23 h</span>'; $('horas').after(e); }
+    graficoHoras($('horas'), porHora, 'en el período');
 
-    // Por medio de pago
+    // Medios de pago
     const medios = {}; act.forEach(x => { const m = String(x.origen).split(' · ')[0]; medios[m] = (medios[m] || 0) + x.v; });
-    const ul = $('porMedio'); ul.innerHTML = '';
     const ord = Object.entries(medios).sort((a, b) => b[1] - a[1]);
-    if (!ord.length) ul.innerHTML = '<li><span class="d">Sin ventas en este período.</span></li>';
-    ord.forEach(([m, v]) => {
-      const li = document.createElement('li');
-      const a = document.createElement('div'); a.textContent = m;
-      const d = document.createElement('div'); d.className = 'd'; d.textContent = Math.round(v / (total || 1) * 100) + '%'; a.append(d);
-      const b = document.createElement('div'); b.textContent = fmt(Math.round(v)); li.append(a, b); ul.append(li);
-    });
+    if (!ord.length) $('porMedio').innerHTML = '<div class="vacio">Sin ventas en este período.</div>';
+    else barras($('porMedio'), ord.map(([m, v]) => ({ etq: m, v, valor: `${fmt(Math.round(v))} · ${Math.round(v / (total || 1) * 100)}%` })));
 
     pintarNegocio();
   }
@@ -501,6 +501,53 @@
     a.download = 'ventas-' + periodo + '-' + new Date().toISOString().slice(0, 10) + '.csv';
     a.click(); URL.revokeObjectURL(a.href);
   };
+
+  // ---------- Gráficos (SVG simple, sin librerías) ----------
+  const VERDE = '#16a34a', VERDE_SUAVE = 'rgba(22,163,74,.45)', GRIS = '#4b5a53', GRILLA = '#26302b', TXT2 = '#9fb0a8';
+  const corto = v => v >= 1e6 ? '$ ' + (v / 1e6).toFixed(1).replace('.', ',') + 'M' : v >= 1e3 ? '$ ' + Math.round(v / 1e3) + 'k' : '$ ' + Math.round(v);
+  const escapar = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // Tooltip al pasar el dedo/mouse por cualquier elemento con data-tip dentro de un .graf
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest('[data-tip]'); const g = el && el.closest('.graf');
+    document.querySelectorAll('.tip').forEach(x => x.remove());
+    if (!el || !g) return;
+    const r = el.getBoundingClientRect(), rg = g.getBoundingClientRect();
+    const tip = document.createElement('div'); tip.className = 'tip'; tip.innerHTML = el.dataset.tip;
+    tip.style.left = Math.min(Math.max(r.left + r.width / 2 - rg.left, 60), rg.width - 60) + 'px'; tip.style.top = (el.dataset.topY ? Number(el.dataset.topY) : r.top - rg.top) + 'px';
+    g.append(tip);
+  });
+
+  // Columnas verticales: items [{etq, v, tip, fuerte, rotulo}], un solo color (sin leyenda: el título dice qué es)
+  function columnas(cont, items, { alto = 170, cadaEtq = 1 } = {}) {
+    const W = 340, H = alto, mL = 38, mB = 22, mT = 20, mR = 4;
+    const max = Math.max(...items.map(x => x.v), 1);
+    const paso = Math.pow(10, Math.floor(Math.log10(max))); const tope = Math.ceil(max / paso) * paso;
+    const y = v => mT + (H - mT - mB) * (1 - v / tope);
+    const slot = (W - mL - mR) / items.length, bw = Math.min(24, slot * 0.7);
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+    [0, tope / 2, tope].forEach(v => {
+      s += `<line x1="${mL}" x2="${W - mR}" y1="${y(v)}" y2="${y(v)}" stroke="${GRILLA}" stroke-width="1"/>` +
+        `<text x="${mL - 6}" y="${y(v) + 4}" fill="${TXT2}" font-size="10" text-anchor="end">${corto(v).replace('$ ', '')}</text>`;
+    });
+    items.forEach((it, i) => {
+      const cx = mL + slot * i + slot / 2, top = y(it.v), base = y(0), h = Math.max(0, base - top), r = Math.min(4, h, bw / 2);
+      const x0 = cx - bw / 2;
+      if (h > 0.5) s += `<path d="M${x0},${base} V${top + r} Q${x0},${top} ${x0 + r},${top} H${x0 + bw - r} Q${x0 + bw},${top} ${x0 + bw},${top + r} V${base} Z" fill="${it.fuerte === false ? VERDE_SUAVE : VERDE}"/>`;
+      if (it.rotulo) s += `<text x="${cx}" y="${top - 6}" fill="#eef3f0" font-size="11" font-weight="700" text-anchor="middle">${corto(it.v)}</text>`;
+      if (i % cadaEtq === 0) s += `<text x="${cx}" y="${H - 6}" fill="${TXT2}" font-size="10.5" text-anchor="middle">${escapar(it.etq)}</text>`;
+      // zona de toque más grande que la barra
+      s += `<rect x="${mL + slot * i}" y="${mT}" width="${slot}" height="${H - mT - mB}" fill="transparent" data-tip="${escapar(it.tip)}"/>`;
+    });
+    cont.innerHTML = s + '</svg>';
+  }
+
+  // Barras horizontales: items [{etq, v, color, valor}]
+  function barras(cont, items) {
+    const max = Math.max(...items.map(x => x.v), 1);
+    cont.innerHTML = items.map(it => `<div class="hbar" data-tip="${escapar(it.etq + ': ' + fmt(Math.round(it.v)))}"><span>${escapar(it.etq)}</span>` +
+      `<div class="pista"><i style="width:${Math.max(it.v ? 1 : 0, it.v / max * 100)}%;background:${it.color || VERDE}"></i></div><b>${it.valor || fmt(Math.round(it.v))}</b></div>`).join('');
+  }
 
   // ---------- Cómo viene el negocio ----------
   // Mismos gráficos para "solo transferencias" y para "todo" (transferencias + efectivo y tarjetas de los turnos)
@@ -544,71 +591,85 @@
       : 'Incluye únicamente cobros por transferencia y Mercado Pago.';
     const mov = movimientos();
     const plata = v => fmt(Math.round(v));
-    const fila = (k, v, extra = '') => `<div class="metrica"><span>${k}</span><b>${v}</b>${extra ? `<em>${extra}</em>` : ''}</div>`;
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const primero = mov.length ? Math.min(...mov.map(x => x.t.getTime())) : Date.now();
     const diasConDatos = (Date.now() - primero) / 86400000;
+    const vacio = txt => `<div class="vacio">${txt}</div>`;
 
-    // Mes en curso
+    // Mes en curso: mes anterior vs. facturado a la fecha vs. proyección
     const ahora = new Date(), iniMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
     const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1), iniAnt = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
     const delMes = mov.filter(x => x.t >= iniMes).reduce((a, x) => a + x.v, 0);
     const mesPasado = mov.filter(x => x.t >= iniAnt && x.t < iniMes).reduce((a, x) => a + x.v, 0);
     const fr = (ahora - iniMes) / (finMes - iniMes), diasMes = Math.round((finMes - iniMes) / 86400000);
-    const nomAnt = iniAnt.toLocaleDateString('es-AR', { month: 'long' });
-    let mes = fila('Facturado a la fecha', plata(delMes), `día ${Math.ceil(fr * diasMes)} de ${diasMes}`);
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    const nomMes = cap(ahora.toLocaleDateString('es-AR', { month: 'long' })), nomAnt = cap(iniAnt.toLocaleDateString('es-AR', { month: 'long' }));
+    const filas = [];
+    if (mesPasado > 0) filas.push({ etq: nomAnt + ' (cierre)', v: mesPasado, color: GRIS });
+    filas.push({ etq: nomMes + ' a la fecha', v: delMes, color: VERDE });
+    let pie = `Día ${Math.ceil(fr * diasMes)} de ${diasMes}.`;
     if (fr >= 0.1 && delMes > 0) {
       const proy = delMes / fr;
-      mes += fila('Proyección de cierre', plata(proy));
-      if (mesPasado > 0) {
-        const pct = Math.round((proy - mesPasado) / mesPasado * 100);
-        mes += `<div class="metrica"><span>Variación vs. ${nomAnt}</span><b class="${pct >= 0 ? 'sube' : 'baja'}">${pct >= 0 ? '+' : '−'}${Math.abs(pct)}%</b><em>${nomAnt}: ${plata(mesPasado)}</em></div>`;
-      }
-    } else mes += fila('Proyección de cierre', '—', 'disponible desde el día ' + (Math.ceil(diasMes * 0.1) + 1));
-    $('nMes').innerHTML = mes;
+      filas.push({ etq: nomMes + ' proyectado', v: proy, color: VERDE_SUAVE });
+      if (mesPasado > 0) { const p = Math.round((proy - mesPasado) / mesPasado * 100); pie += ` Proyección vs. ${nomAnt}: <b class="${p >= 0 ? 'sube' : 'baja'}">${p >= 0 ? '+' : '−'}${Math.abs(p)}%</b>`; }
+    } else pie += ' La proyección de cierre aparece desde el día ' + (Math.ceil(diasMes * 0.1) + 1) + '.';
+    barras($('nMes'), filas);
+    $('nMes').insertAdjacentHTML('beforeend', `<div class="pie">${pie}</div>`);
 
-    // Días de la semana (promedio de hasta 8 semanas)
+    // Ventas por día de la semana (promedio de hasta 8 semanas)
     const NOMBRES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const desde8 = new Date(hoy); desde8.setDate(desde8.getDate() - 55);
     const semanas = Math.max(1, Math.min(8, Math.ceil(diasConDatos / 7)));
     const porDia = Array(7).fill(0); mov.forEach(x => { if (x.t >= desde8) porDia[x.t.getDay()] += x.v; });
-    const con = porDia.map((v, i) => ({ v: v / semanas, i })).filter(x => x.v > 0);
-    if (diasConDatos < 14 || con.length < 2) {
-      $('nDias').innerHTML = fila('Día de mayor venta', '—', 'requiere al menos 2 semanas de registros');
+    const prom = porDia.map(v => v / semanas);
+    if (diasConDatos < 14 || prom.filter(v => v > 0).length < 2) {
+      $('nDias').innerHTML = vacio('Se necesitan al menos 2 semanas de registros para comparar los días.');
     } else {
-      const mejor = con.reduce((a, b) => (b.v > a.v ? b : a)), peor = con.reduce((a, b) => (b.v < a.v ? b : a));
-      $('nDias').innerHTML = fila('Día de mayor venta', NOMBRES[mejor.i], 'promedio ' + plata(mejor.v)) +
-        fila('Día de menor venta', NOMBRES[peor.i], 'promedio ' + plata(peor.v));
+      const orden = [1, 2, 3, 4, 5, 6, 0];
+      const con = orden.filter(i => prom[i] > 0);
+      const mejor = con.reduce((a, b) => (prom[b] > prom[a] ? b : a)), peor = con.reduce((a, b) => (prom[b] < prom[a] ? b : a));
+      columnas($('nDias'), orden.map(i => ({ etq: NOMBRES[i].slice(0, 3), v: prom[i], fuerte: i === mejor, rotulo: i === mejor || i === peor,
+        tip: `${NOMBRES[i]}: ${plata(prom[i])} promedio` })));
+      $('nDias').insertAdjacentHTML('beforeend', `<div class="pie">Promedio por día. Mejor: <b>${NOMBRES[mejor]}</b> · Más bajo: <b>${NOMBRES[peor]}</b></div>`);
     }
 
-    // Franjas horarias (bloques de 3 horas)
+    // Ventas por horario (promedio por hora, horario con ventas)
     const porHora = Array(24).fill(0); mov.forEach(x => { if (x.t >= desde8) porHora[x.t.getHours()] += x.v; });
-    const abiertas = porHora.map((v, h) => (v > 0 ? h : -1)).filter(h => h >= 0);
-    const hh = h => String(h).padStart(2, '0') + ':00';
-    if (diasConDatos < 7 || abiertas.length < 3) {
-      $('nHoras').innerHTML = fila('Franja de mayor actividad', '—', 'requiere al menos 1 semana de registros');
+    const conVenta = porHora.map((v, h) => (v > 0 ? h : -1)).filter(h => h >= 0);
+    if (diasConDatos < 7 || conVenta.length < 3) {
+      $('nHoras').innerHTML = vacio('Se necesita al menos 1 semana de registros para ver los horarios.');
     } else {
-      const bloques = [];
-      for (let h = abiertas[0]; h + 2 <= abiertas[abiertas.length - 1]; h++) bloques.push({ h, v: porHora[h] + porHora[h + 1] + porHora[h + 2] });
-      const fuerte = bloques.reduce((a, b) => (b.v > a.v ? b : a)), tranqui = bloques.reduce((a, b) => (b.v < a.v ? b : a));
-      let txt = fila('Franja de mayor actividad', `${hh(fuerte.h)} – ${hh(fuerte.h + 3)}`);
-      if (tranqui.h !== fuerte.h && tranqui.v < fuerte.v * 0.6) txt += fila('Franja de menor actividad', `${hh(tranqui.h)} – ${hh(tranqui.h + 3)}`);
-      $('nHoras').innerHTML = txt;
+      graficoHoras($('nHoras'), porHora.map(v => v / Math.max(1, Math.round(diasConDatos > 56 ? 56 : diasConDatos))), 'promedio por día');
     }
 
-    // Evolución semanal (bloques de 7 días hacia atrás desde hoy)
+    // Evolución semanal: 4 columnas, de la más vieja a la actual
     const fin0 = new Date(hoy); fin0.setDate(fin0.getDate() + 1);
-    const etiquetas = ['Últimos 7 días', 'Semana anterior', 'Hace 2 semanas', 'Hace 3 semanas'];
-    const sem = etiquetas.map((e, i) => {
+    const etiquetas = ['Hace 3 sem.', 'Hace 2 sem.', 'Sem. anterior', 'Últimos 7 días'];
+    const sem = etiquetas.map((e, j) => {
+      const i = 3 - j;
       const hasta = new Date(fin0); hasta.setDate(hasta.getDate() - 7 * i);
       const desde = new Date(hasta); desde.setDate(desde.getDate() - 7);
-      return { e, v: mov.filter(x => x.t >= desde && x.t < hasta).reduce((a, x) => a + x.v, 0) };
+      const v = mov.filter(x => x.t >= desde && x.t < hasta).reduce((a, x) => a + x.v, 0);
+      const fd = d => d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+      const ult = new Date(hasta); ult.setDate(ult.getDate() - 1);
+      return { etq: e, v, fuerte: j === 3, rotulo: true, tip: `${fd(desde)} al ${fd(ult)}: ${plata(v)}` };
     });
-    const maxS = Math.max(...sem.map(s => s.v), 1);
-    let varSem = '';
-    if (sem[1].v > 0) { const p = Math.round((sem[0].v - sem[1].v) / sem[1].v * 100); varSem = `<p class="ayuda">Variación semanal: <b class="${p >= 0 ? 'sube' : 'baja'}">${p >= 0 ? '+' : '−'}${Math.abs(p)}%</b></p>`; }
-    $('nSemanas').innerHTML = sem.map((s, i) => `<div class="semana${i === 0 ? ' actual' : ''}"><span>${s.e}</span>` +
-      `<div class="barra"><i style="width:${s.v / maxS * 100}%"></i></div><b>${plata(s.v)}</b></div>`).join('') + varSem;
+    columnas($('nSemanas'), sem, { alto: 160 });
+    if (sem[2].v > 0) { const p = Math.round((sem[3].v - sem[2].v) / sem[2].v * 100); $('nSemanas').insertAdjacentHTML('beforeend', `<div class="pie">Variación vs. semana anterior: <b class="${p >= 0 ? 'sube' : 'baja'}">${p >= 0 ? '+' : '−'}${Math.abs(p)}%</b></div>`); }
+  }
+
+  // Columnas por hora (solo el rango con ventas), resaltando la franja de 3 h de mayor venta
+  function graficoHoras(cont, porHora, unidad) {
+    const conVenta = porHora.map((v, h) => (v > 0 ? h : -1)).filter(h => h >= 0);
+    if (!conVenta.length) { cont.innerHTML = '<div class="vacio">Sin ventas en este período.</div>'; return; }
+    const desde = conVenta[0], hasta = conVenta[conVenta.length - 1];
+    let pico = desde, mejor = -1;
+    for (let h = desde; h <= Math.max(desde, hasta - 2); h++) { const s = porHora[h] + (porHora[h + 1] || 0) + (porHora[h + 2] || 0); if (s > mejor) { mejor = s; pico = h; } }
+    const horas = []; for (let h = desde; h <= hasta; h++) horas.push(h);
+    const hh = h => String(h).padStart(2, '0') + ':00';
+    columnas(cont, horas.map(h => ({ etq: h + 'h', v: porHora[h], fuerte: h >= pico && h < pico + 3,
+      tip: `${hh(h)} a ${hh(h + 1)}: ${fmt(Math.round(porHora[h]))} ${unidad}` })), { cadaEtq: horas.length > 12 ? 2 : 1 });
+    cont.insertAdjacentHTML('beforeend', `<div class="pie">Franja de mayor venta: <b>${hh(pico)} a ${hh(Math.min(pico + 3, 24))}</b></div>`);
   }
 
   $('tabsNegocio').onclick = e => {
