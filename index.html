@@ -504,7 +504,7 @@
 
   // ---------- Gráficos (SVG simple, sin librerías) ----------
   const VERDE = '#16a34a', VERDE_SUAVE = 'rgba(22,163,74,.45)', GRIS = '#4b5a53', GRILLA = '#26302b', TXT2 = '#9fb0a8';
-  const corto = v => v >= 1e6 ? '$ ' + (v / 1e6).toFixed(1).replace('.', ',') + 'M' : v >= 1e3 ? '$ ' + Math.round(v / 1e3) + 'k' : '$ ' + Math.round(v);
+  const corto = v => v >= 1e6 ? '$ ' + (v / 1e6).toFixed(1).replace('.', ',') + 'M' : v >= 1e3 ? '$ ' + (v < 1e4 && v % 1000 ? (v / 1e3).toFixed(1).replace('.', ',') : Math.round(v / 1e3)) + 'k' : '$ ' + Math.round(v);
   const escapar = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // Tooltip al pasar el dedo/mouse por cualquier elemento con data-tip dentro de un .graf
@@ -522,11 +522,11 @@
   function columnas(cont, items, { alto = 170, cadaEtq = 1 } = {}) {
     const W = 340, H = alto, mL = 38, mB = 22, mT = 20, mR = 4;
     const max = Math.max(...items.map(x => x.v), 1);
-    const paso = Math.pow(10, Math.floor(Math.log10(max))); const tope = Math.ceil(max / paso) * paso;
+    const crudo = max / 2, p10 = Math.pow(10, Math.floor(Math.log10(crudo))); const paso = [1, 2, 2.5, 5, 10].map(m => m * p10).find(s => s >= crudo); const tope = paso * 2;
     const y = v => mT + (H - mT - mB) * (1 - v / tope);
     const slot = (W - mL - mR) / items.length, bw = Math.min(24, slot * 0.7);
     let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
-    [0, tope / 2, tope].forEach(v => {
+    [0, paso, tope].forEach(v => {
       s += `<line x1="${mL}" x2="${W - mR}" y1="${y(v)}" y2="${y(v)}" stroke="${GRILLA}" stroke-width="1"/>` +
         `<text x="${mL - 6}" y="${y(v) + 4}" fill="${TXT2}" font-size="10" text-anchor="end">${corto(v).replace('$ ', '')}</text>`;
     });
