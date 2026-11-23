@@ -559,12 +559,12 @@
   }
 
   // Cada cuánto consulta. En la nube, los cobros llegan AL INSTANTE por el aviso en vivo (más abajo);
-  // la consulta periódica es solo de respaldo: 1 minuto, o 8 s si hay un comprobante esperando
+  // la consulta periódica es solo de respaldo: cada 5 minutos, o 8 s si hay un comprobante esperando
   // (para chequear Mercado Pago seguido) o si el aviso en vivo está caído.
   function intervalo() {
     if (!NUBE) return 1500;
     if (!vivo.ok) return 10000;
-    return pendientes.some(p => p.estado === 'ESPERANDO') ? 8000 : 60000;
+    return pendientes.some(p => p.estado === 'ESPERANDO') ? 8000 : 300000;
   }
   async function ciclo() {
     if (consultando) { otraVez = true; return; } // ya hay una consulta en curso: repetir al terminar
