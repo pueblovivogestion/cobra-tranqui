@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 660" role="img" aria-label="Cobrá Tranqui">
+  <!-- Cobrá Tranqui, logo animado (~3 s): la moneda mira preocupada a los costados → aparece el nombre →
+       se pone los anteojos y "Tranqui" se vuelve dorado → sonríe. Termina en el logo quieto.
+       Versión para la pantalla de entrada celeste (sin el cuadrado de fondo). Con "reducir movimiento" se muestra directo el final. -->
+  <style>
+    .nombre { animation: subir .45s ease-out 1.3s both; }
+    .tranqui { animation: dorar .35s ease-out 1.95s both; }
+    .lentes { animation: ponerse .45s cubic-bezier(.3, 1.35, .6, 1) 1.8s both; }
+    .ojos, .cejas { animation: irse .2s linear 2.1s both; }
+    .pupilas { animation: mirar 1.3s ease-in-out both; }
+    .preocupada { animation: irse .2s linear 2.15s both; }
+    .sonrisa { stroke-dasharray: 1; animation: dibujar .35s ease-out 2.2s both; }
+    .brillo { animation: aparecer .3s ease-out 2.55s both; }
+    .moneda { transform-origin: 256px 262px; animation: alivio .35s ease-out 2.5s both; }
+    @keyframes subir { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes dorar { from { fill: #0C4A6E; stroke-width: 0; } to { fill: #FDE047; stroke-width: 12; } }
+    @keyframes ponerse { from { transform: translateY(-330px); } to { transform: translateY(0); } }
+    @keyframes irse { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes mirar {
+      0%, 8% { transform: translateX(0); }
+      22%, 38% { transform: translateX(-13px); }
+      55%, 72% { transform: translateX(13px); }
+      88%, 100% { transform: translateX(0); }
+    }
+    @keyframes dibujar { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+    @keyframes aparecer { from { opacity: 0; } to { opacity: .6; } }
+    @keyframes alivio { 0% { transform: scale(1); } 45% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    @media (prefers-reduced-motion: reduce) {
+      .nombre, .lentes, .sonrisa, .moneda { animation: none; }
+      .tranqui { animation: none; fill: #FDE047; stroke-width: 12; }
+      .ojos, .cejas, .preocupada { display: none; }
+      .brillo { animation: none; opacity: .6; }
+    }
+  </style>
+  
+  <g class="moneda">
+    <circle cx="256" cy="262" r="152" fill="#FACC15"/>
+    <path d="M104 262 A152 152 0 0 0 408 262 A152 140 0 0 1 104 262 Z" fill="#EAB308"/>
+    <circle cx="256" cy="262" r="124" fill="none" stroke="#EAB308" stroke-width="10"/>
+    <!-- Cara preocupada (sin anteojos) -->
+    <g class="cejas" stroke="#92400E" stroke-width="12" stroke-linecap="round">
+      <line x1="160" y1="190" x2="218" y2="174"/>
+      <line x1="294" y1="174" x2="352" y2="190"/>
+    </g>
+    <g class="ojos">
+      <ellipse cx="195" cy="230" rx="27" ry="29" fill="#ffffff"/>
+      <ellipse cx="317" cy="230" rx="27" ry="29" fill="#ffffff"/>
+      <g class="pupilas" fill="#111827">
+        <circle cx="195" cy="232" r="13"/>
+        <circle cx="317" cy="232" r="13"/>
+      </g>
+    </g>
+    <path class="preocupada" d="M200 330 Q228 314 256 330 Q284 346 312 330" stroke="#92400E" stroke-width="15" fill="none" stroke-linecap="round"/>
+    <!-- Cara canchera (final) -->
+    <path class="sonrisa" pathLength="1" d="M196 318 Q256 366 316 318" stroke="#92400E" stroke-width="17" fill="none" stroke-linecap="round"/>
+    <g class="lentes">
+      <line x1="152" y1="216" x2="112" y2="204" stroke="#111827" stroke-width="12" stroke-linecap="round"/>
+      <line x1="360" y1="216" x2="400" y2="204" stroke="#111827" stroke-width="12" stroke-linecap="round"/>
+      <rect x="146" y="198" width="98" height="62" rx="24" fill="#111827"/>
+      <rect x="268" y="198" width="98" height="62" rx="24" fill="#111827"/>
+      <path d="M244 220 Q256 208 268 220" stroke="#111827" stroke-width="12" fill="none" stroke-linecap="round"/>
+      <g class="brillo" fill="#ffffff">
+        <rect x="164" y="212" width="30" height="10" rx="5"/>
+        <rect x="286" y="212" width="30" height="10" rx="5"/>
+      </g>
+    </g>
+  </g>
+  <text class="nombre" x="256" y="628" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" font-size="76" font-weight="700"><tspan fill="#0C4A6E">Cobrá </tspan><tspan class="tranqui" fill="#0C4A6E" stroke="#0C4A6E" stroke-width="0" stroke-linejoin="round" paint-order="stroke">Tranqui</tspan></text>
+</svg>
