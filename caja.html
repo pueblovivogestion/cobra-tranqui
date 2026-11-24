@@ -58,6 +58,7 @@
   #sinTurno input { width:100%; font-size:22px; padding:12px; border-radius:12px; border:1px solid #34413b; background:#111815; color:var(--txt); text-align:center; margin-bottom:12px; }
   #sinTurno button { width:100%; }
   #sinTurno .err { color:#ff8a80; min-height:1.2em; margin-top:8px; }
+  #sinTurno .salir { display:inline-block; margin-top:10px; font-size:13px; color:#8a9a92; }
   li.devuelto { opacity:.55; } li.devuelto .m { text-decoration:line-through; }
   .devuelto-tag { background:#5a1a17; color:#ffb4ab; font-size:12px; padding:2px 6px; border-radius:6px; margin-left:6px; }
   li.tocable { cursor:pointer; }
@@ -562,6 +563,9 @@
       cartel.append(el('div', 'm', '🕘'), el('h2', null, 'Caja cerrada'),
         el('p', null, 'Para empezar a recibir los avisos de cobro, abrí el turno con tu nombre. Al terminar, cerralo desde el botón del turno.'),
         nombre, boton, err);
+      // Salida discreta: pasar a dueño o desvincular esta caja sin abrir turno
+      const salir = el('a', 'salir', 'Cambiar de modo'); salir.href = '#'; salir.onclick = cambiarDeModo;
+      cartel.append(salir);
       c.append(cartel); document.body.append(c);
     }
     c.classList.toggle('oculto', !mostrar);
@@ -712,12 +716,15 @@
 
   if (NUBE) {
     $('cambiarModo').classList.remove('oculto');
-    $('cambiarModo').querySelector('a').onclick = e => {
-      e.preventDefault();
-      if (!confirm('Esta pantalla deja de mostrar la caja. Para volver a usarla como caja vas a necesitar el código del dueño. ¿Seguimos?')) return;
-      try { localStorage.removeItem('tokenCaja'); localStorage.removeItem('rol'); } catch (err) {}
-      location.href = 'index.html';
-    };
+    $('cambiarModo').querySelector('a').onclick = cambiarDeModo;
+  }
+
+  // Deja de usar esta pantalla como caja (para pasar a dueño o desvincularla)
+  function cambiarDeModo(e) {
+    e.preventDefault();
+    if (!confirm('Esta pantalla deja de mostrar la caja. Para volver a usarla como caja vas a necesitar el código del dueño. ¿Seguimos?')) return;
+    try { localStorage.removeItem('tokenCaja'); localStorage.removeItem('rol'); } catch (err) {}
+    location.href = 'index.html';
   }
 
   if (NUBE || pin) arrancar();

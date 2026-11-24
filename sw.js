@@ -1,6 +1,6 @@
 // Service worker: guarda SOLO los archivos de la app (para que abra rápido y se pueda instalar).
 // Los cobros NUNCA salen de caché: siempre se piden en vivo al servidor.
-const VERSION = 'cobra-tranqui-v43';
+const VERSION = 'cobra-tranqui-v44';
 const ARCHIVOS = ['./', 'index.html', 'caja.html', 'config.js', 'excel.js', 'manifest-caja.webmanifest', 'manifest-panel.webmanifest',
   'iconos/icono-192.png', 'iconos/icono-512.png', 'iconos/apple-touch-icon.png', 'iconos/favicon.png', 'iconos/logo-animado-entrada.svg', 'iconos/logo-redondo.svg'];
 
