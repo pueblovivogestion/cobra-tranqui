@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cobrá Tranqui · Panel</title>
 <link rel="manifest" href="manifest-panel.webmanifest">
-<meta name="theme-color" content="#0f1412">
+<meta name="theme-color" content="#38BDF8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,13 +13,17 @@
 <link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
 <link rel="icon" href="iconos/favicon.png">
 <style>
-  :root { --ok:#0B6E4F; --ok2:#16a34a; --mal:#B3261E; --fondo:#0f1412; --carta:#1a211e; --borde:#2b3631; --txt:#eef3f0; --sub:#9fb0a8; }
+  :root { --ok:#0B6E4F; --ok2:#16a34a; --mal:#B3261E; --fondo:#38BDF8; --sobreFondo:#0C4A6E; --sobreFondo2:#075985; --carta:#1a211e; --borde:#2b3631; --txt:#eef3f0; --sub:#9fb0a8; }
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--fondo); color:var(--txt); }
   main { max-width:760px; margin:0 auto; padding:24px 16px 48px; padding-top:max(24px, env(safe-area-inset-top)); }
   h1 { font-size:26px; margin:0 0 4px; } h2 { font-size:18px; margin:0 0 10px; }
   p.sub { color:var(--sub); margin:0 0 20px; }
-  .carta { background:var(--carta); border:1px solid var(--borde); border-radius:16px; padding:18px; margin-bottom:16px; }
+  .carta { background:var(--carta); border:1px solid var(--borde); border-radius:16px; padding:18px; margin-bottom:16px; box-shadow:0 8px 22px rgba(12,74,110,.28); }
+  /* Textos que van directo sobre el fondo celeste (fuera de las tarjetas): azul oscuro para que se lean */
+  main :is(h1, h2, h3, p, label):not(.carta *):not(.opcion *):not(.msg *) { color:var(--sobreFondo); }
+  main :is(p.sub, .ayuda, label):not(.carta *):not(.opcion *):not(.msg *) { color:var(--sobreFondo2); }
+  main a:not(.carta *):not(.opcion *):not(.msg *) { color:var(--sobreFondo); font-weight:700; }
   label { display:block; font-size:14px; color:var(--sub); margin:12px 0 4px; }
   input { width:100%; font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid var(--borde); background:#111815; color:var(--txt); }
   button { font-size:16px; padding:11px 16px; border-radius:10px; border:0; background:var(--ok2); color:#fff; font-weight:700; cursor:pointer; }
@@ -35,6 +39,7 @@
   a { color:#7ee2a8; }
   .opcion { display:flex; flex-direction:column; align-items:flex-start; gap:6px; width:100%; text-align:left; margin-bottom:14px;
     padding:20px; border-radius:16px; border:1px solid var(--borde); background:var(--carta); color:var(--txt); font-weight:400; }
+  .opcion { box-shadow:0 8px 22px rgba(12,74,110,.28); }
   .opcion:hover { border-color:var(--ok2); }
   .opcion .emoji { font-size:34px; } .opcion b { font-size:20px; } .opcion span { color:var(--sub); font-size:15px; line-height:1.4; }
   .ayuda { color:var(--sub); font-size:14px; margin:6px 0 0; }
@@ -122,7 +127,7 @@
   // Se muestra cada vez que se abre la app (no al volver de conectar Mercado Pago)
   if (/[?&]mp=/.test(location.search)) { s.remove(); raiz.style.background = document.body.style.background = ''; return; }
   var listo = false;
-  function cerrar() { if (listo) return; listo = true; s.style.opacity = '0'; setTimeout(function () { s.remove(); raiz.style.background = document.body.style.background = ''; }, 320); }
+  function cerrar() { if (listo) return; listo = true; raiz.style.background = document.body.style.background = ''; s.style.opacity = '0'; setTimeout(function () { s.remove(); }, 320); }
   var quieto = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var img = document.getElementById('splashLogo');
   // La animación dura ~2,2 s desde que carga el logo; medio segundo quieta y se abre la app (~3 s en total) (no se puede saltear)
