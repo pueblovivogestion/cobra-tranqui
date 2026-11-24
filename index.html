@@ -116,7 +116,8 @@
 <script>
 (function () {
   var s = document.getElementById('splash');
-  try { if (sessionStorage.getItem('splashVisto')) { s.remove(); return; } sessionStorage.setItem('splashVisto', '1'); } catch (e) {}
+  // Se muestra cada vez que se abre la app (no al volver de conectar Mercado Pago)
+  if (/[?&]mp=/.test(location.search)) { s.remove(); return; }
   var listo = false;
   function cerrar() { if (listo) return; listo = true; s.style.opacity = '0'; setTimeout(function () { s.remove(); }, 400); }
   var quieto = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
