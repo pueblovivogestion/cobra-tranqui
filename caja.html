@@ -112,7 +112,7 @@
 <section id="pinPantalla">
   <img src="iconos/logo-redondo.svg" alt="" width="80" height="80" style="display:block;margin:0 auto 8px;border-radius:18px" onerror="this.remove()">
   <h1>Cobrá Tranqui</h1>
-  <p>Ingresá el PIN que aparece en el celular del dueño</p>
+  <p>Poné el PIN del celular del dueño</p>
   <input id="pin" inputmode="numeric" maxlength="6" autocomplete="off">
   <button id="entrar">Entrar</button>
   <div id="error"></div>
@@ -124,7 +124,7 @@
     <span id="estado">Conectando…</span>
   </header>
   <div id="avisos" class="oculto" style="background:#4a3b0c;color:#ffe58a;padding:10px 16px;font-size:15px;text-align:center"></div>
-  <div id="alerta" class="oculto">⚠️ SIN CONEXIÓN con el celular del dueño. NO aceptes capturas ni comprobantes hasta que vuelva.</div>
+  <div id="alerta" class="oculto">⚠️ SIN CONEXIÓN. No aceptes comprobantes hasta que vuelva.</div>
   <div id="ultimo">
     <div class="chico">Esperando cobros…</div>
     <div class="monto">—</div>
@@ -146,7 +146,7 @@
   <h2>Hoy</h2>
   <ul id="lista"></ul>
   <footer>Si el pago no aparece acá, <b>no entró</b>. Un comprobante solo queda <b>pendiente</b> hasta que la plata llegue.
-    <p id="cambiarModo" class="oculto" style="margin-top:18px"><a href="#" style="color:#9fb0a8">Cambiar de modo (pasar a dueño o desvincular esta caja)</a></p>
+    <p id="cambiarModo" class="oculto" style="margin-top:18px"><a href="#" style="color:#9fb0a8">Cambiar de modo</a></p>
   </footer>
 </section>
 
@@ -173,8 +173,7 @@
       const p = document.getElementById('pinPantalla');
       p.innerHTML =
         '<img src="iconos/logo-redondo.svg" alt="" width="80" height="80" style="display:block;margin:0 auto 8px;border-radius:18px" onerror="this.remove()"><h1>Cobrá Tranqui</h1>' +
-        '<p style="max-width:420px">Esta es la <b>pantalla de caja</b>. Escribí el código que aparece en el panel del dueño, ' +
-        'en "Pantalla de caja" (o escaneá el QR con la cámara).</p>' +
+        '<p style="max-width:420px">Escribí el código del panel del dueño o escaneá el QR.</p>' +
         '<input id="codigoCaja" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="K7M2QXPA" ' +
         'style="text-transform:uppercase;letter-spacing:3px;font-size:30px;width:280px;max-width:90vw">' +
         '<button id="vincular">Vincular esta caja</button><div id="error"></div>' +
@@ -215,7 +214,7 @@
   function pintarPantalla() {
     const b = document.getElementById('btnPantalla'); if (!b) return;
     if (!('wakeLock' in navigator)) {
-      b.textContent = '🔆 Este navegador no puede dejar la pantalla prendida: poné el bloqueo automático del equipo en "Nunca"';
+      b.textContent = '🔆 No se puede: poné el bloqueo automático en "Nunca"';
       b.classList.remove('si'); return;
     }
     b.textContent = pantallaPrendida ? '🔆 Pantalla siempre prendida: SÍ (tocá para desactivar)' : '🌙 Pantalla siempre prendida: NO (tocá para activar)';
@@ -418,7 +417,7 @@
   }
 
   async function descartar(p) {
-    if (!confirm('¿Descartar este comprobante? (por ejemplo, si el cliente pagó de otra forma)')) return;
+    if (!confirm('¿Descartar este comprobante?')) return;
     if (NUBE) await nubePost({ accion: 'descartar', id: p.id }).catch(() => {});
     else await fetch(api('pendiente/descartar', '&id=' + encodeURIComponent(p.id)), { method: 'POST' }).catch(() => {});
     cerrarModal(); ciclo();
@@ -435,7 +434,7 @@
     const rojas = (p.alertas || []).filter(a => a.nivel === 'rojo');
     if (p.estado === 'ACREDITADO') return ['dec-ok', '✅ La plata YA entró. Podés entregar.'];
     if (rojas.length) return ['dec-no', '🚫 NO entregues. Hay algo raro en el comprobante.'];
-    if (p.monto != null && p.monto <= umbral) return ['dec-esperar', '⏳ Monto bajo: podés entregar. Queda PENDIENTE y te aviso cuando entre.'];
+    if (p.monto != null && p.monto <= umbral) return ['dec-esperar', '⏳ Monto bajo: podés entregar. Te aviso cuando entre.'];
     return ['dec-no', '✋ Esperá a que se acredite antes de entregar (más de ' + fmt(umbral) + ').'];
   }
 
@@ -455,7 +454,7 @@
       const desc = el('button', null, 'Descartar'); desc.onclick = () => descartar(p);
       acc.append(corr, desc);
     }
-    nodos.push(acc, el('div', 'nota', 'Una foto NO prueba el pago. Solo cuenta cuando la plata aparece acreditada.'));
+    nodos.push(acc, el('div', 'nota', 'La foto no prueba nada: esperá que entre la plata.'));
     abrirModal(nodos);
   }
 
@@ -514,7 +513,7 @@
     const cerrar = el('button', null, 'Cerrar'); cerrar.onclick = cerrarModal;
     const marcar = el('button', null, p.devuelto ? 'Deshacer devolución' : '↩️ Marcar como devuelto');
     marcar.onclick = async () => {
-      if (!p.devuelto && !confirm('¿Le devolviste esta plata al cliente? Queda registrado y deja de sumar en el total.')) return;
+      if (!p.devuelto && !confirm('¿Le devolviste esta plata al cliente?')) return;
       await nubePost({ accion: 'devolver', id: p.id, deshacer: !!p.devuelto }).catch(() => {});
       cerrarModal(); ciclo();
     };
@@ -522,7 +521,7 @@
     abrirModal([
       el('div', 'chico', (p.pagador || 'Sin nombre') + ' · ' + p.origen + ' · ' + hora(p.ts)),
       el('div', 'm', fmt(p.monto)),
-      el('div', 'nota', p.devuelto ? 'Este cobro está marcado como DEVUELTO.' : 'Si le devolviste la plata al cliente (cambio, error, venta anulada), marcalo acá.'),
+      el('div', 'nota', p.devuelto ? 'Este cobro está marcado como DEVUELTO.' : '¿Le devolviste la plata? Marcalo acá.'),
       acc,
     ]);
   }
@@ -561,7 +560,7 @@
       };
       nombre.addEventListener('keydown', e => { if (e.key === 'Enter') boton.click(); });
       cartel.append(el('div', 'm', '🕘'), el('h2', null, 'Caja cerrada'),
-        el('p', null, 'Para empezar a recibir los avisos de cobro, abrí el turno con tu nombre. Al terminar, cerralo desde el botón del turno.'),
+        el('p', null, 'Poné tu nombre para empezar.'),
         nombre, boton, err);
       // Salida discreta: pasar a dueño o desvincular esta caja sin abrir turno
       const salir = el('a', 'salir', 'Cambiar de modo'); salir.href = '#'; salir.onclick = cambiarDeModo;
@@ -590,7 +589,7 @@
       turno = r.turno; pintarTurno(); cerrarModal(); ciclo();
     };
     acc.append(ok, no);
-    abrirModal([el('div', 'm', '🕘'), el('div', 'nota', 'Al cerrar el turno vas a ver lo que entró por transferencia mientras estuviste, y cargás el efectivo y las tarjetas. El resumen le llega al dueño.'),
+    abrirModal([el('div', 'm', '🕘'), el('div', 'nota', 'Cargá el efectivo y las tarjetas. Las transferencias ya están.'),
       campo('¿Quién está en la caja?', 'tEmpleado', 'text', 'Tu nombre'), acc]);
     setTimeout(() => $('tEmpleado').focus(), 50);
   }
@@ -606,7 +605,7 @@
     };
     acc.append(ok, no);
     abrirModal([el('div', 'chico', 'Turno de ' + turno.empleado + ' · desde las ' + hora(turno.inicio)),
-      el('div', 'nota', 'Contá lo que hay en la caja y cargalo. Las transferencias las suma la app sola.'),
+      el('div', 'nota', 'Contá la caja y cargalo.'),
       campo('Efectivo en la caja ($)', 'tEfectivo', 'number', '0'),
       campo('Cobrado con tarjeta / posnet ($)', 'tTarjetas', 'number', '0'),
       campo('Notas (opcional)', 'tNotas', 'area', 'Ej.: faltó cambio, se rompió algo…'), acc]);
@@ -722,7 +721,7 @@
   // Deja de usar esta pantalla como caja (para pasar a dueño o desvincularla)
   function cambiarDeModo(e) {
     e.preventDefault();
-    if (!confirm('Esta pantalla deja de mostrar la caja. Para volver a usarla como caja vas a necesitar el código del dueño. ¿Seguimos?')) return;
+    if (!confirm('Esta pantalla deja de ser la caja. ¿Seguimos?')) return;
     try { localStorage.removeItem('tokenCaja'); localStorage.removeItem('rol'); } catch (err) {}
     location.href = 'index.html';
   }

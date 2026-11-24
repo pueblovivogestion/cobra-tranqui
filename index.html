@@ -158,7 +158,7 @@
 <main>
   <div class="tema"><label class="interruptor">Modo oscuro <input type="checkbox" id="tema" role="switch"><i></i></label></div>
   <img src="iconos/logo-redondo.svg" alt="" width="64" height="64" style="display:block;margin:0 0 10px;border-radius:15px" onerror="this.remove()"><h1>Cobrá Tranqui</h1>
-  <p class="sub">Cero comprobantes truchos. Tus empleados ven en vivo los cobros que entran a tus cuentas, sin capturas y sin claves.</p>
+  <p class="sub">Chau comprobantes truchos.</p>
   <div id="mensaje" class="msg oculto"></div>
 
   <!-- ¿Quién usa este aparato? -->
@@ -167,12 +167,12 @@
     <button class="opcion" id="elegirDueno">
       <span class="emoji">📲</span>
       <b>Soy el dueño</b>
-      <span>A mis cuentas les llegan las transferencias. Quiero conectar Mercado Pago y mis bancos, y configurar la caja.</span>
+      <span>Conectá tus cuentas y configurá la caja.</span>
     </button>
     <button class="opcion" id="elegirCaja">
       <span class="emoji">🧾</span>
       <b>Es la caja del local</b>
-      <span>El empleado mira acá los cobros en vivo para no aceptar comprobantes truchos.</span>
+      <span>Para el mostrador: ver los cobros en vivo.</span>
     </button>
   </section>
 
@@ -202,36 +202,35 @@
     <div class="carta">
       <h2>1. Tu comercio</h2>
       <label>¿Cómo se llama tu comercio?</label><input id="nombre" placeholder="Ej.: Kiosco Lola">
-      <p class="ayuda">Es el nombre que ve tu empleado arriba en la pantalla de la caja.</p>
+      <p class="ayuda">Lo ve tu empleado en la caja.</p>
       <div class="fila"><button id="btnGuardar">Guardar</button></div>
     </div>
 
     <div class="carta">
       <h2>2. Conectá tus cuentas</h2>
-      <p class="sub" style="margin:0">Así la caja ve al instante cada transferencia o pago que entra a tu cuenta. Funciona aunque tengas iPhone y estés lejos del local.</p>
+      <p class="sub" style="margin:0">La caja ve cada transferencia al instante.</p>
       <ul id="cuentasMp"></ul>
       <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
-      <p class="ayuda" id="ayudaMp">Mercado Pago te va a pedir que inicies sesión: entrá con la cuenta donde te transfieren. Si te conecta solo a otra cuenta, abrí mercadopago.com.ar, cerrá esa sesión y volvé a tocar el botón.</p>
+      <p class="ayuda" id="ayudaMp">Entrá con la cuenta donde te transfieren.</p>
       <details class="sub-det" id="detOtrosBancos">
-      <summary><b>¿Te transfieren también a otro banco o billetera?</b><span>Ualá, Cuenta DNI, Galicia, Naranja X… (opcional, solo con celular Android)</span></summary>
-      <p class="sub">La caja ya ve todo lo que entra a tu <b>Mercado Pago</b>. Si también cobrás en otras cuentas, tu celular puede avisarle a la caja cada vez que tu banco te manda el aviso de <i>"Recibiste una transferencia"</i>.</p>
-      <div class="paso"><span>1</span><div>Desde tu <b>celular Android</b> (el que recibe los avisos de tus bancos), descargá la app:<br>
+      <summary><b>¿Cobrás en otro banco o billetera?</b><span>Ualá, Cuenta DNI, bancos… (solo Android)</span></summary>
+      <p class="sub">Tu celular le pasa a la caja los avisos de tu banco.</p>
+      <div class="paso"><span>1</span><div>Descargá la app en tu <b>celular Android</b>:<br>
         <a class="boton-link" href="cobra-tranqui.apk" download>⬇️ Descargar Cobrá Tranqui para Android</a></div></div>
       <div class="paso"><span>2</span><div>Abrila y tocá <b>"Dar acceso a notificaciones"</b>.</div></div>
-      <div class="paso"><span>3</span><div>Bajá hasta <b>"Vincular con la nube"</b>, escribí este código y tocá <b>"Vincular"</b>:</div></div>
+      <div class="paso"><span>3</span><div>En <b>"Vincular con la nube"</b> poné este código:</div></div>
       <div id="codigoAndroid" class="codigo"></div>
       <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button><button id="btnNuevoAndroid" class="sec">Desvincular celular</button></div>
-      <p class="ayuda">El código sirve una sola vez: después de vincular, aparece otro para el próximo celular. Cuando diga <b>"✅ Celular conectado"</b>, listo. Con iPhone esto no se puede (Apple no deja leer los avisos de otras apps).</p>
+      <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. No funciona con iPhone.</p>
     </details>
     </div>
 
     <div class="carta">
       <h2>3. Abrí la caja en el mostrador</h2>
-      <p class="sub" style="margin:0">En el celular, tablet o compu de la caja (sirve iPhone) entrá a esta misma página, tocá <b>"Es la caja del local"</b> y escribí este código. O escaneá el QR con la cámara.</p>
-      <p class="ayuda">Al empezar, el empleado <b>abre el turno</b> con su nombre y al terminar lo cierra. Los cobros se controlan mientras haya un turno abierto (si se olvidan de cerrarlo, se deja de controlar a las 16 horas).</p>
+      <p class="sub" style="margin:0">Escaneá el QR desde la caja o escribí el código.</p>
       <label>Código de la caja</label><div id="codigoCaja" class="codigo"></div>
       <div id="qr"></div>
-      <p class="ayuda">El código sirve para vincular una caja, una sola vez: después cambia solo y las cajas ya vinculadas siguen andando. Si un empleado deja de trabajar con vos, tocá <b>"Cambiar código"</b> para desconectar todas las cajas.</p>
+      <p class="ayuda">Cada código sirve una vez. <b>Cambiar código</b> desconecta todas las cajas.</p>
       <div class="fila">
         <button id="btnAbrirCaja" class="sec">Ver la caja</button>
         <button id="btnSimular" class="sec">Simular un cobro de prueba</button>
@@ -242,9 +241,9 @@
     </div>
 
     <details class="carta" id="detEstad">
-      <summary><b>Estadísticas del negocio</b><span>Facturación, proyección, días y horarios de mayor actividad</span></summary>
+      <summary><b>Estadísticas del negocio</b><span>Ventas, días y horarios</span></summary>
       <div class="tabs" id="tabsNegocio">
-        <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Total (incl. efectivo y tarjetas)</button>
+        <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Con efectivo y tarjetas</button>
       </div>
       <p class="ayuda" id="notaNegocio" style="margin:0 0 6px"></p>
 
@@ -272,44 +271,43 @@
       <div class="graf" id="horas"></div>
       <h3>Medios de pago</h3>
       <div class="graf" id="porMedio"></div>
-      <p class="ayuda">Excluye operaciones de prueba y devoluciones.</p>
       <div class="fila"><button id="btnExcel" class="sec">Descargar en Excel</button></div>
     </details>
 
     <details class="carta" id="detCobros" open>
-      <summary><b>Últimos cobros</b><span>Los últimos movimientos que entraron</span></summary>
+      <summary><b>Últimos cobros</b><span>Lo último que entró</span></summary>
       <ul id="cobros"></ul>
     </details>
 
     <details class="carta" id="detTurnos">
-      <summary><b>Cierres de turno</b><span>Cada vez que un empleado cierra su turno en la caja, acá ves el resumen</span></summary>
+      <summary><b>Cierres de turno</b><span>El resumen de cada turno</span></summary>
       <ul id="turnos"></ul>
     </details>
 
     <details class="carta">
       <summary><b>Opciones de la caja</b><span>Qué puede ver tu empleado</span></summary>
-      <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total y la cantidad de ventas del día</label>
-      <p class="ayuda">La caja sigue mostrando cada cobro que entra (los últimos 10), pero no cuánto se vendió. En el cierre de turno, el empleado carga el efectivo sin ver lo que la app sumó (cierre "a ciegas"): vos ves el resumen completo acá.</p>
+      <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total vendido</label>
+      <p class="ayuda">Ve cada cobro, pero no cuánto se vendió. Vos sí.</p>
     </details>
 
 
     <details class="carta">
-      <summary><b>Comprobantes con foto</b><span>Para cuando el cliente te muestra la transferencia pero la plata todavía no llegó (opcional)</span></summary>
-      <p class="sub">A veces una transferencia tarda unos minutos. En la caja, el empleado puede sacarle una foto al comprobante del cliente: la app lo revisa y lo deja <b>"pendiente"</b> hasta que la plata entra de verdad.</p>
-      <label>Si la plata tarda, el empleado puede entregar igual hasta:</label>
+      <summary><b>Comprobantes con foto</b><span>Cuando la plata todavía no llegó (opcional)</span></summary>
+      <p class="sub">El empleado le saca foto al comprobante y la caja avisa cuando entra la plata.</p>
+      <label>Puede entregar sin esperar hasta:</label>
       <div class="pesos"><span>$</span><input id="umbral" type="number" inputmode="numeric"></div>
-      <p class="ayuda">Por arriba de ese monto, la caja le dice que espere a que se acredite. Si no querés arriesgar nunca, poné 0.</p>
-      <label>Si no llega en estos minutos, la caja avisa "NO LLEGÓ":</label>
+      <p class="ayuda">Más que eso, espera a que entre. Con 0 espera siempre.</p>
+      <label>Minutos hasta avisar "NO LLEGÓ":</label>
       <input id="minutos" type="number" inputmode="numeric">
       <label>Tus alias o CVU (separados por coma)</label>
       <input id="cuentas" placeholder="mi.alias.mp, otro.alias">
-      <p class="ayuda">Sirve para detectar comprobantes de transferencias hechas a <b>otra</b> cuenta (un truco común de los estafadores).</p>
+      <p class="ayuda">Detecta comprobantes hechos a <b>otra</b> cuenta.</p>
       <div class="fila"><button id="btnGuardar2">Guardar</button></div>
     </details>
 
     <div class="carta">
       <h2>Este aparato</h2>
-      <p class="sub" style="margin:0">¿Vas a dejar este celular o tablet en el mostrador? Pasalo a modo caja. Para volver a tu panel, en la caja tocá "Cambiar de modo".</p>
+      <p class="sub" style="margin:0">Para dejarlo en el mostrador.</p>
       <div class="fila">
         <button id="btnModoCaja" class="sec">🧾 Usar este aparato como caja</button>
         <button id="btnSalir" class="sec">Cerrar sesión</button>
@@ -351,12 +349,12 @@
     const { data, error } = await sb.auth.signUp({ email: $('email').value.trim(), password: $('clave').value,
       options: { emailRedirectTo: location.origin + location.pathname } });
     if (error) return mensaje('No pude crear la cuenta: ' + error.message, false);
-    if (!data.session) mensaje('Te mandamos un mail para confirmar la cuenta. Confirmalo y después entrá.');
+    if (!data.session) mensaje('Te mandamos un mail: confirmalo y entrá.');
     else iniciar();
   };
   $('btnSalir').onclick = async () => { await sb.auth.signOut(); rol.poner(null); location.reload(); };
   $('btnModoCaja').onclick = async () => {
-    if (!confirm('Este aparato va a mostrar la caja. Se cierra tu sesión de dueño para que el empleado no pueda tocar la configuración. ¿Seguimos?')) return;
+    if (!confirm('Se cierra tu sesión de dueño y este aparato pasa a ser la caja. ¿Seguimos?')) return;
     const destino = linkCaja();
     await sb.auth.signOut();
     rol.poner('caja');
@@ -372,10 +370,10 @@
   $('olvide').onclick = async e => {
     e.preventDefault();
     const email = $('email').value.trim() || prompt('¿Cuál es el email de tu cuenta?') || '';
-    if (!email.includes('@')) return mensaje('Escribí tu email arriba y volvé a tocar "¿Olvidaste tu contraseña?".', false);
+    if (!email.includes('@')) return mensaje('Primero escribí tu email arriba.', false);
     const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
     if (error) return mensaje('No pude mandar el mail: ' + error.message, false);
-    mensaje('Te mandamos un mail a ' + email + ' con un link para elegir una contraseña nueva. Revisá también el spam.');
+    mensaje('Te mandamos un mail a ' + email + '. Revisá también el spam.');
   };
   $('btnGuardarClave').onclick = async () => {
     const a = $('clave1').value, b = $('clave2').value;
@@ -733,8 +731,8 @@
     if (!negocio) return;
     const hayTurnos = negocio.turnos.some(t => Number(t.efectivo || 0) + Number(t.tarjetas || 0) > 0);
     $('notaNegocio').textContent = modoNegocio === 'todo'
-      ? (hayTurnos ? 'Incluye transferencias, efectivo y tarjetas declarados en los cierres de turno.'
-        : 'Sin cierres de turno con efectivo o tarjetas registrados: los valores coinciden con “Solo transferencias”.')
+      ? (hayTurnos ? 'Suma lo cargado en los cierres de turno.'
+        : 'Todavía no hay efectivo ni tarjetas cargados.')
       : 'Incluye únicamente cobros por transferencia y Mercado Pago.';
     const mov = movimientos();
     const plata = v => fmt(Math.round(v));
@@ -770,7 +768,7 @@
     const porDia = Array(7).fill(0); mov.forEach(x => { if (x.t >= desde8) porDia[x.t.getDay()] += x.v; });
     const prom = porDia.map(v => v / semanas);
     if (diasConDatos < 14 || prom.filter(v => v > 0).length < 2) {
-      $('nDias').innerHTML = vacio('Se necesitan al menos 2 semanas de registros para comparar los días.');
+      $('nDias').innerHTML = vacio('Hacen falta 2 semanas de datos.');
     } else {
       const orden = [1, 2, 3, 4, 5, 6, 0];
       const con = orden.filter(i => prom[i] > 0);
@@ -784,7 +782,7 @@
     const porHora = Array(24).fill(0); mov.forEach(x => { if (x.t >= desde8) porHora[x.t.getHours()] += x.v; });
     const conVenta = porHora.map((v, h) => (v > 0 ? h : -1)).filter(h => h >= 0);
     if (diasConDatos < 7 || conVenta.length < 3) {
-      $('nHoras').innerHTML = vacio('Se necesita al menos 1 semana de registros para ver los horarios.');
+      $('nHoras').innerHTML = vacio('Hace falta 1 semana de datos.');
     } else {
       graficoHoras($('nHoras'), porHora.map(v => v / Math.max(1, Math.round(diasConDatos > 56 ? 56 : diasConDatos))), 'promedio por día');
     }
@@ -832,7 +830,7 @@
   async function cargarTurnos() {
     const { data } = await sb.from('turnos').select('*').eq('comercio_id', com.id).order('inicio', { ascending: false }).limit(20);
     const ul = $('turnos'); ul.innerHTML = '';
-    if (!data || !data.length) { ul.innerHTML = '<li><span class="d">Todavía no hubo turnos. Se abren desde la caja con el botón "Abrir turno".</span></li>'; return; }
+    if (!data || !data.length) { ul.innerHTML = '<li><span class="d">Todavía no hubo turnos.</span></li>'; return; }
     data.forEach(t => {
       const li = document.createElement('li');
       const a = document.createElement('div'); a.textContent = t.empleado + (t.fin ? '' : ' (turno abierto)');
@@ -867,10 +865,10 @@
   };
 
   async function desvincularMp(c) {
-    if (!confirm('¿Desvincular ' + (c.mp_nickname || 'esta cuenta') + '? La caja deja de ver los cobros que entran ahí. Los cobros ya registrados quedan.')) return;
+    if (!confirm('¿Desvincular ' + (c.mp_nickname || 'esta cuenta') + '? La caja deja de ver esos cobros.')) return;
     const { data, error } = await sb.functions.invoke('mp-conectar', { body: { comercio_id: com.id, accion: 'desconectar', mp_user_id: c.mp_user_id } });
     if (error || !data?.ok) return mensaje('No pude desvincular: ' + (data?.error || error?.message), false);
-    mensaje('Cuenta desvinculada. Para conectar otra, tocá "Conectar con Mercado Pago" y entrá con esa cuenta.');
+    mensaje('Cuenta desvinculada.');
     refrescar();
   }
 
@@ -890,16 +888,16 @@
     mensaje('Cobro de prueba enviado: tiene que aparecer en la caja.'); refrescar();
   };
   $('btnNuevoAndroid').onclick = async () => {
-    if (!confirm('El celular Android vinculado deja de mandar cobros hasta que lo vuelvas a vincular con el código nuevo. ¿Seguro?')) return;
+    if (!confirm('El celular deja de mandar cobros. ¿Seguro?')) return;
     const llave = [...crypto.getRandomValues(new Uint8Array(18))].map(b => b.toString(16).padStart(2, '0')).join('');
     const { data: codigo } = await sb.rpc('nuevo_codigo_caja');
     const cambios = { token_android: llave }; if (codigo) cambios.codigo_android = codigo;
     const { data, error } = await sb.from('comercios').update(cambios).eq('id', com.id).select().single();
     if (error) return mensaje(error.message, false);
-    com = data; pintar(); mensaje('Celular desvinculado. Para volver a conectarlo usá el código nuevo.');
+    com = data; pintar(); mensaje('Celular desvinculado.');
   };
   $('btnNuevoLink').onclick = async () => {
-    if (!confirm('Las cajas vinculadas se desconectan y hay que volver a vincularlas con el código nuevo. ¿Seguro?')) return;
+    if (!confirm('Se desconectan todas las cajas. ¿Seguro?')) return;
     const nuevo = [...crypto.getRandomValues(new Uint8Array(18))].map(b => b.toString(16).padStart(2, '0')).join('');
     const { data: codigo } = await sb.rpc('nuevo_codigo_caja');
     const cambios = { token_caja: nuevo }; if (codigo) cambios.codigo_caja = codigo;
