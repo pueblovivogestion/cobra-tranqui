@@ -110,8 +110,26 @@
 </style>
 </head>
 <body>
+<div id="splash" style="position:fixed;inset:0;z-index:100;background:#0f1412;display:flex;align-items:center;justify-content:center;transition:opacity .35s ease">
+  <img id="splashLogo" src="iconos/logo-animado.svg" alt="Cobrá Tranqui" width="210" height="271">
+</div>
+<script>
+(function () {
+  var s = document.getElementById('splash');
+  try { if (sessionStorage.getItem('splashVisto')) { s.remove(); return; } sessionStorage.setItem('splashVisto', '1'); } catch (e) {}
+  var listo = false;
+  function cerrar() { if (listo) return; listo = true; s.style.opacity = '0'; setTimeout(function () { s.remove(); }, 400); }
+  var quieto = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var img = document.getElementById('splashLogo');
+  // La animación dura ~3 s desde que carga el logo; tocar la pantalla la saltea
+  function programar() { setTimeout(cerrar, quieto ? 700 : 3200); }
+  if (img.complete) programar(); else { img.onload = programar; img.onerror = cerrar; }
+  setTimeout(cerrar, 6000);
+  s.onclick = cerrar;
+})();
+</script>
 <main>
-  <img src="iconos/logo-animado.svg" alt="Cobrá Tranqui" width="130" height="168" style="display:block;margin:0 0 12px"><h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Cobrá Tranqui</h1>
+  <img src="iconos/logo-redondo.svg" alt="" width="64" height="64" style="display:block;margin:0 0 10px;border-radius:15px" onerror="this.remove()"><h1>Cobrá Tranqui</h1>
   <p class="sub">Cero comprobantes truchos. Tus empleados ven en vivo los cobros que entran a tus cuentas, sin capturas y sin claves.</p>
   <div id="mensaje" class="msg oculto"></div>
 
