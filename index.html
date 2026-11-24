@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
 <link rel="icon" href="iconos/favicon.png">
 <style>
-  :root { --ok:#0B6E4F; --ok2:#16a34a; --mal:#B3261E; --fondo:#38BDF8; --sobreFondo:#0C4A6E; --sobreFondo2:#075985; --carta:#1a211e; --borde:#2b3631; --txt:#eef3f0; --sub:#9fb0a8; }
+  :root { --ok:#0B6E4F; --ok2:#16a34a; --mal:#B3261E; --fondo:#38BDF8; --sobreFondo:#0b1620; --sobreFondo2:#1d3445; --carta:#1a211e; --borde:#2b3631; --txt:#eef3f0; --sub:#9fb0a8; }
   * { box-sizing:border-box; }
   body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--fondo); color:var(--txt); }
   main { max-width:760px; margin:0 auto; padding:24px 16px 48px; padding-top:max(24px, env(safe-area-inset-top)); }
@@ -32,13 +32,17 @@
   html.oscuro { --fondo:#0f1412; --sobreFondo:var(--txt); --sobreFondo2:var(--sub); }
   html.oscuro .carta, html.oscuro .opcion { box-shadow:none; }
   html.oscuro main a:not(.carta *):not(.opcion *):not(.msg *) { color:#7ee2a8; font-weight:400; }
-  /* Selector de tema: chiquito y discreto */
-  .tema { float:right; margin:2px 0 0 8px; font-size:12px; opacity:.75; }
-  .tema:hover, .tema:focus-within { opacity:1; }
-  .tema label { display:inline; margin:0; font-size:12px; }
-  .tema select { font-size:12px; padding:3px 4px; border-radius:8px; background:transparent; color:inherit;
-    border:1px solid currentColor; cursor:pointer; }
-  .tema option { color:#111; }
+  /* Interruptor "Modo oscuro": chiquito y discreto, arriba a la derecha */
+  .tema { float:right; margin:4px 0 0 8px; }
+  .tema label.interruptor { display:flex; align-items:center; gap:8px; margin:0; font-size:12px; cursor:pointer; opacity:.8; user-select:none; }
+  .tema label.interruptor:hover { opacity:1; }
+  .interruptor input { position:absolute; opacity:0; width:1px; height:1px; }
+  .interruptor i { position:relative; width:36px; height:20px; border-radius:999px; background:rgba(11,22,32,.25); transition:background .2s; flex:none; }
+  .interruptor i::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .2s; }
+  .interruptor input:checked + i { background:var(--ok2); }
+  .interruptor input:checked + i::after { transform:translateX(16px); }
+  .interruptor input:focus-visible + i { outline:2px solid var(--ok2); outline-offset:2px; }
   label { display:block; font-size:14px; color:var(--sub); margin:12px 0 4px; }
   input { width:100%; font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid var(--borde); background:#111815; color:var(--txt); }
   button { font-size:16px; padding:11px 16px; border-radius:10px; border:0; background:var(--ok2); color:#fff; font-weight:700; cursor:pointer; }
@@ -152,7 +156,7 @@
 })();
 </script>
 <main>
-  <div class="tema"><label>Tema <select id="tema" aria-label="Tema del panel"><option value="celeste">Celeste</option><option value="oscuro">Oscuro</option></select></label></div>
+  <div class="tema"><label class="interruptor">Modo oscuro <input type="checkbox" id="tema" role="switch"><i></i></label></div>
   <img src="iconos/logo-redondo.svg" alt="" width="64" height="64" style="display:block;margin:0 0 10px;border-radius:15px" onerror="this.remove()"><h1>Cobrá Tranqui</h1>
   <p class="sub">Cero comprobantes truchos. Tus empleados ven en vivo los cobros que entran a tus cuentas, sin capturas y sin claves.</p>
   <div id="mensaje" class="msg oculto"></div>
@@ -909,9 +913,9 @@
     if (ev === 'SIGNED_IN' && !com) iniciar();
   });
   // Selector de tema
-  $('tema').value = document.documentElement.classList.contains('oscuro') ? 'oscuro' : 'celeste';
+  $('tema').checked = document.documentElement.classList.contains('oscuro');
   $('tema').onchange = () => {
-    const oscuro = $('tema').value === 'oscuro';
+    const oscuro = $('tema').checked;
     document.documentElement.classList.toggle('oscuro', oscuro);
     document.querySelector('meta[name=theme-color]').content = oscuro ? '#0f1412' : '#38BDF8';
     try { localStorage.setItem('tema', oscuro ? 'oscuro' : 'celeste'); } catch (e) {}
