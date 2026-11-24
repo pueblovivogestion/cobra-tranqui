@@ -221,7 +221,7 @@
       <div id="linkCaja" class="oculto"></div>
     </div>
 
-    <details class="carta" id="detEstad" open>
+    <details class="carta" id="detEstad">
       <summary><b>Estadísticas del negocio</b><span>Facturación, proyección, días y horarios de mayor actividad</span></summary>
       <div class="tabs" id="tabsNegocio">
         <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Total (incl. efectivo y tarjetas)</button>
@@ -475,7 +475,8 @@
 
   // "Estadísticas del negocio" recuerda si el dueño la dejó abierta o cerrada
   // (lo mismo para "Últimos cobros")
-  [['detEstad', 'estadCerrada'], ['detCobros', 'cobrosCerrada']].forEach(([id, k]) => {
+  // "Estadísticas del negocio" arranca siempre cerrada; "Últimos cobros" recuerda cómo la dejó el dueño
+  [['detCobros', 'cobrosCerrada']].forEach(([id, k]) => {
     try { if (localStorage.getItem(k) === '1') $(id).open = false; } catch (e) {}
     $(id).addEventListener('toggle', () => { try { localStorage.setItem(k, $(id).open ? '0' : '1'); } catch (e) {} });
   });
