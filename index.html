@@ -6,6 +6,10 @@
 <title>Cobrá Tranqui · Panel</title>
 <link rel="manifest" href="manifest-panel.webmanifest">
 <meta name="theme-color" content="#38BDF8">
+<script>
+  // Tema del panel: "celeste" (por defecto) u "oscuro" (el de antes). Se elige arriba a la derecha.
+  try { if (localStorage.getItem('tema') === 'oscuro') { document.documentElement.classList.add('oscuro'); document.querySelector('meta[name=theme-color]').content = '#0f1412'; } } catch (e) {}
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -24,6 +28,17 @@
   main :is(h1, h2, h3, p, label):not(.carta *):not(.opcion *):not(.msg *) { color:var(--sobreFondo); }
   main :is(p.sub, .ayuda, label):not(.carta *):not(.opcion *):not(.msg *) { color:var(--sobreFondo2); }
   main a:not(.carta *):not(.opcion *):not(.msg *) { color:var(--sobreFondo); font-weight:700; }
+  /* Modo oscuro (como era antes) */
+  html.oscuro { --fondo:#0f1412; --sobreFondo:var(--txt); --sobreFondo2:var(--sub); }
+  html.oscuro .carta, html.oscuro .opcion { box-shadow:none; }
+  html.oscuro main a:not(.carta *):not(.opcion *):not(.msg *) { color:#7ee2a8; font-weight:400; }
+  /* Selector de tema: chiquito y discreto */
+  .tema { float:right; margin:2px 0 0 8px; font-size:12px; opacity:.75; }
+  .tema:hover, .tema:focus-within { opacity:1; }
+  .tema label { display:inline; margin:0; font-size:12px; }
+  .tema select { font-size:12px; padding:3px 4px; border-radius:8px; background:transparent; color:inherit;
+    border:1px solid currentColor; cursor:pointer; }
+  .tema option { color:#111; }
   label { display:block; font-size:14px; color:var(--sub); margin:12px 0 4px; }
   input { width:100%; font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid var(--borde); background:#111815; color:var(--txt); }
   button { font-size:16px; padding:11px 16px; border-radius:10px; border:0; background:var(--ok2); color:#fff; font-weight:700; cursor:pointer; }
@@ -137,6 +152,7 @@
 })();
 </script>
 <main>
+  <div class="tema"><label>Tema <select id="tema" aria-label="Tema del panel"><option value="celeste">Celeste</option><option value="oscuro">Oscuro</option></select></label></div>
   <img src="iconos/logo-redondo.svg" alt="" width="64" height="64" style="display:block;margin:0 0 10px;border-radius:15px" onerror="this.remove()"><h1>Cobrá Tranqui</h1>
   <p class="sub">Cero comprobantes truchos. Tus empleados ven en vivo los cobros que entran a tus cuentas, sin capturas y sin claves.</p>
   <div id="mensaje" class="msg oculto"></div>
@@ -892,6 +908,14 @@
     if (ev === 'PASSWORD_RECOVERY') { recuperando = true; mostrar('nuevaClave'); return; }
     if (ev === 'SIGNED_IN' && !com) iniciar();
   });
+  // Selector de tema
+  $('tema').value = document.documentElement.classList.contains('oscuro') ? 'oscuro' : 'celeste';
+  $('tema').onchange = () => {
+    const oscuro = $('tema').value === 'oscuro';
+    document.documentElement.classList.toggle('oscuro', oscuro);
+    document.querySelector('meta[name=theme-color]').content = oscuro ? '#0f1412' : '#38BDF8';
+    try { localStorage.setItem('tema', oscuro ? 'oscuro' : 'celeste'); } catch (e) {}
+  };
   iniciar();
 })();
 </script>
