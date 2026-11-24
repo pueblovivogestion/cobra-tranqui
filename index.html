@@ -110,7 +110,7 @@
 </style>
 </head>
 <body>
-<div id="splash" style="position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:100;background:#38BDF8;display:flex;align-items:center;justify-content:center;transition:opacity .35s ease">
+<div id="splash" style="position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:100;background:#38BDF8;display:flex;align-items:center;justify-content:center;transition:opacity .3s ease">
   <img id="splashLogo" src="iconos/logo-animado-entrada.svg" alt="Cobrá Tranqui" width="210" height="242">
 </div>
 <script>
@@ -122,11 +122,11 @@
   // Se muestra cada vez que se abre la app (no al volver de conectar Mercado Pago)
   if (/[?&]mp=/.test(location.search)) { s.remove(); raiz.style.background = document.body.style.background = ''; return; }
   var listo = false;
-  function cerrar() { if (listo) return; listo = true; s.style.opacity = '0'; setTimeout(function () { s.remove(); raiz.style.background = document.body.style.background = ''; }, 400); }
+  function cerrar() { if (listo) return; listo = true; s.style.opacity = '0'; setTimeout(function () { s.remove(); raiz.style.background = document.body.style.background = ''; }, 320); }
   var quieto = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var img = document.getElementById('splashLogo');
-  // La animación dura ~3 s desde que carga el logo; queda 1 s quieta y se abre la app (no se puede saltear)
-  function programar() { setTimeout(cerrar, quieto ? 1000 : 3900); }
+  // La animación dura ~2,2 s desde que carga el logo; medio segundo quieta y se abre la app (~3 s en total) (no se puede saltear)
+  function programar() { setTimeout(cerrar, quieto ? 700 : 2700); }
   if (img.complete) programar(); else { img.onload = programar; img.onerror = cerrar; }
   setTimeout(cerrar, 9000); // por si el logo no carga
 })();
