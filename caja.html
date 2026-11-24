@@ -88,8 +88,8 @@
 <body>
 
 <section id="pinPantalla">
-  <img src="iconos/logo-redondo.svg" alt="" width="96" height="96" style="display:block;margin:0 auto 8px;border-radius:22px" onerror="this.remove()">
-  <h1>Cobrá Tranqui</h1>
+  <img src="iconos/logo-animado.svg" alt="Cobrá Tranqui" width="180" height="232" style="display:block;margin:0 auto 4px" onerror="this.remove()">
+  <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Cobrá Tranqui</h1>
   <p>Ingresá el PIN que aparece en el celular del dueño</p>
   <input id="pin" inputmode="numeric" maxlength="6" autocomplete="off">
   <button id="entrar">Entrar</button>
@@ -150,7 +150,7 @@
     setTimeout(() => {
       const p = document.getElementById('pinPantalla');
       p.innerHTML =
-        '<img src="iconos/logo-redondo.svg" alt="" width="96" height="96" style="display:block;margin:0 auto 8px;border-radius:22px" onerror="this.remove()"><h1>Cobrá Tranqui</h1>' +
+        '<img src="iconos/logo-animado.svg" alt="Cobrá Tranqui" width="180" height="232" style="display:block;margin:0 auto 4px" onerror="this.remove()"><h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Cobrá Tranqui</h1>' +
         '<p style="max-width:420px">Esta es la <b>pantalla de caja</b>. Escribí el código que aparece en el panel del dueño, ' +
         'en "Pantalla de caja" (o escaneá el QR con la cámara).</p>' +
         '<input id="codigoCaja" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="K7M2QXPA" ' +
