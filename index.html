@@ -122,9 +122,8 @@
   details.carta[open] summary b::before { content:'▾ '; }
   details.carta summary span { color:var(--sub); font-size:14px; }
   details.carta[open] summary { margin-bottom:10px; }
-  /* Tarjeta "Tus ventas": blanca sobre el celeste; en modo oscuro, como las demás */
-  .estad { --carta:#ffffff; --borde:#d6e2ea; --txt:#0b1620; --sub:#4b5b66; --grilla:#e6edf2; --tenue:#c4d2db; --sube:#15803d; --baja:#b91c1c; color:var(--txt); }
-  html.oscuro .estad { --carta:#1a211e; --borde:#2b3631; --txt:#eef3f0; --sub:#9fb0a8; --grilla:#26302b; --tenue:#4b5a53; --sube:#7ee2a8; --baja:#ff8a80; }
+  /* Tarjeta "Tus ventas": oscura como las demás tarjetas */
+  .estad { --grilla:#26302b; --tenue:#4b5a53; --sube:#7ee2a8; --baja:#ff8a80; color:var(--txt); }
   .estad .tabs button { background:var(--grilla); color:var(--txt); border-radius:999px; padding:6px 16px; }
   .estad .tabs button.activa { background:var(--txt); color:var(--carta); }
   .estad button.sec { background:var(--grilla); color:var(--txt); }
