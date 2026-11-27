@@ -102,8 +102,8 @@
   function cerrar() { if (listo) return; listo = true; raiz.style.background = document.body.style.background = ''; s.style.opacity = '0'; setTimeout(function () { s.remove(); }, 320); }
   var quieto = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var img = document.getElementById('splashLogo');
-  // La animación dura ~1,5 s desde que carga el logo; medio segundo quieta y se abre la app (~2,3 s en total) (no se puede saltear)
-  function programar() { setTimeout(cerrar, quieto ? 700 : 2000); }
+  // La animación dura ~1,8 s desde que carga el logo; medio segundo quieta y se abre la app (~2,5 s en total) (no se puede saltear)
+  function programar() { setTimeout(cerrar, quieto ? 700 : 2300); }
   if (img.complete) programar(); else { img.onload = programar; img.onerror = cerrar; }
   setTimeout(cerrar, 9000); // por si el logo no carga
 })();
