@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 590" role="img" aria-label="Cobrá Tranqui">
-  <!-- Cobrá Tranqui, logo animado (~2,2 s): la moneda mira preocupada a los costados → aparece el nombre →
+  <!-- Cobrá Tranqui, logo animado (~1,5 s): la moneda mira preocupada a los costados → aparece el nombre →
        se pone los anteojos y "Tranqui" se vuelve dorado → sonríe. Termina en el logo quieto.
        Versión para la pantalla de entrada celeste (sin el cuadrado de fondo). Con "reducir movimiento" se muestra directo el final. -->
   <style>
-    .nombre { animation: subir .35s ease-out .95s both; }
-    .tranqui { animation: dorar .3s ease-out 1.45s both; }
-    .lentes { animation: ponerse .4s cubic-bezier(.3, 1.35, .6, 1) 1.3s both; }
-    .ojos, .cejas { animation: irse .15s linear 1.55s both; }
-    .pupilas { animation: mirar 1s ease-in-out both; }
-    .preocupada { animation: irse .15s linear 1.6s both; }
-    .sonrisa { stroke-dasharray: 1; animation: dibujar .3s ease-out 1.65s both; }
-    .brillo { animation: aparecer .25s ease-out 1.95s both; }
-    .moneda { transform-origin: 256px 262px; animation: alivio .3s ease-out 1.9s both; }
+    .nombre { animation: subir .25s ease-out .65s both; }
+    .tranqui { animation: dorar .2s ease-out 1s both; }
+    .lentes { animation: ponerse .28s cubic-bezier(.3, 1.35, .6, 1) .9s both; }
+    .ojos, .cejas { animation: irse .1s linear 1.08s both; }
+    .pupilas { animation: mirar .7s ease-in-out both; }
+    .preocupada { animation: irse .1s linear 1.12s both; }
+    .sonrisa { stroke-dasharray: 1; animation: dibujar .2s ease-out 1.15s both; }
+    .brillo { animation: aparecer .18s ease-out 1.36s both; }
+    .moneda { transform-origin: 256px 262px; animation: alivio .2s ease-out 1.33s both; }
     @keyframes subir { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes dorar { from { fill: #0C4A6E; stroke-width: 0; } to { fill: #FDE047; stroke-width: 12; } }
     @keyframes ponerse { from { transform: translateY(-330px); } to { transform: translateY(0); } }
