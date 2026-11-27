@@ -122,6 +122,9 @@
   details.carta[open] summary b::before { content:'▾ '; }
   details.carta summary span { color:var(--sub); font-size:14px; }
   details.carta[open] summary { margin-bottom:10px; }
+  /* Secciones dentro de un desplegable, separadas por una línea */
+  .seccion h3 { margin:0 0 8px; font-size:16px; color:var(--txt); }
+  .seccion + .seccion { border-top:1px solid var(--borde); margin-top:18px; padding-top:16px; }
   /* Tarjeta "Tus ventas": oscura como las demás tarjetas */
   .estad { --grilla:#26302b; --tenue:#4b5a53; --sube:#7ee2a8; --baja:#ff8a80; color:var(--txt); }
   .estad .tabs button { background:var(--grilla); color:var(--txt); border-radius:999px; padding:6px 16px; }
@@ -219,14 +222,16 @@
 
   <!-- Panel -->
   <section id="panel" class="oculto">
-    <div class="carta">
-      <h2>1. Tu comercio</h2>
+    <details class="carta" id="detConfig">
+      <summary><b>Tu comercio y Mercado Pago</b><span>Nombre, cuenta de Mercado Pago y código de la caja</span></summary>
+      <div class="seccion">
+      <h3>1. Tu comercio</h3>
       <label>¿Cómo se llama tu comercio?</label><input id="nombre" placeholder="Ej.: Kiosco Lola">
       <div class="fila"><button id="btnGuardar">Guardar</button></div>
-    </div>
+      </div>
 
-    <div class="carta">
-      <h2>2. Conectá tu Mercado Pago</h2>
+      <div class="seccion">
+      <h3>2. Conectá tu Mercado Pago</h3>
       <p class="sub" style="margin:0">La caja ve al instante cada cobro que entra a tu Mercado Pago.</p>
       <ul id="cuentasMp"></ul>
       <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
@@ -243,10 +248,10 @@
       <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button><button id="btnNuevoAndroid" class="sec">Desvincular celular</button></div>
       <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. No funciona con iPhone.</p>
     </details>
-    </div>
+      </div>
 
-    <div class="carta">
-      <h2>3. Abrí la caja en el mostrador</h2>
+      <div class="seccion">
+      <h3>3. Abrí la caja en el mostrador</h3>
       <p class="sub" style="margin:0">Escaneá el QR desde la caja o escribí el código.</p>
       <label>Código de la caja</label><div id="codigoCaja" class="codigo"></div>
       <div id="qr"></div>
@@ -258,7 +263,8 @@
         <button id="btnNuevoLink" class="sec">Cambiar código</button>
       </div>
       <div id="linkCaja" class="oculto"></div>
-    </div>
+      </div>
+    </details>
 
     <details class="carta estad" id="detEstad">
       <summary><b>Tus ventas</b><span>Cuánto vendés, cuándo y cómo te pagan</span></summary>
@@ -286,16 +292,17 @@
       <ul id="turnos"></ul>
     </details>
 
-    <details class="carta">
-      <summary><b>Opciones de la caja</b><span>Qué puede ver tu empleado</span></summary>
+    <details class="carta" id="detMas">
+      <summary><b>Más opciones</b><span>Qué ve el empleado, comprobantes con foto y este aparato</span></summary>
+      <div class="seccion">
+      <h3>Qué puede ver tu empleado</h3>
       <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total vendido</label>
       <p class="ayuda">Ve cada cobro, pero no cuánto se vendió. Vos sí.</p>
-    </details>
+      </div>
 
-
-    <details class="carta">
-      <summary><b>Comprobantes con foto</b><span>Cuando la plata todavía no llegó (opcional)</span></summary>
-      <p class="sub">El empleado le saca foto al comprobante y la caja avisa cuando entra la plata.</p>
+      <div class="seccion">
+      <h3>Comprobantes con foto</h3>
+      <p class="sub">Si la plata tarda, el empleado le saca foto al comprobante y la caja avisa cuando entra.</p>
       <label>Puede entregar sin esperar hasta:</label>
       <div class="pesos"><span>$</span><input id="umbral" type="number" inputmode="numeric"></div>
       <p class="ayuda">Más que eso, espera a que entre. Con 0 espera siempre.</p>
@@ -305,16 +312,17 @@
       <input id="cuentas" placeholder="mi.alias.mp, otro.alias">
       <p class="ayuda">Detecta comprobantes hechos a <b>otra</b> cuenta.</p>
       <div class="fila"><button id="btnGuardar2">Guardar</button></div>
-    </details>
+      </div>
 
-    <div class="carta">
-      <h2>Este aparato</h2>
+      <div class="seccion">
+      <h3>Este aparato</h3>
       <p class="sub" style="margin:0">Para dejarlo en el mostrador.</p>
       <div class="fila">
         <button id="btnModoCaja" class="sec">🧾 Usar este aparato como caja</button>
         <button id="btnSalir" class="sec">Cerrar sesión</button>
       </div>
-    </div>
+      </div>
+    </details>
   </section>
 </main>
 
@@ -439,6 +447,7 @@
     $('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2 });
   }
 
+  let configRevisada = false; // "Tu comercio y Mercado Pago" se abre solo la primera vez si falta configurar
   async function refrescar() {
     // Los códigos cortos cambian cada vez que se usan: mostrar siempre el vigente
     const { data: cods } = await sb.from('comercios').select('codigo_caja, codigo_android').eq('id', com.id).maybeSingle();
@@ -457,6 +466,7 @@
       li.append(a, b); ulMp.append(li);
     });
     const hay = !!(cuentas && cuentas.length);
+    if (!configRevisada) { configRevisada = true; if (!hay || !(com.nombre || '').trim() || com.nombre === 'Mi comercio') $('detConfig').open = true; }
     $('btnMp').textContent = hay ? '+ Agregar otra cuenta de Mercado Pago' : 'Conectar con Mercado Pago';
 
     const { data: an } = await sb.from('android_estado').select('ultimo_ping').eq('comercio_id', com.id).maybeSingle();
