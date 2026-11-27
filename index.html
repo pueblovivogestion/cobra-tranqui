@@ -146,11 +146,14 @@
   // Se muestra cada vez que se abre la app (no al volver de conectar Mercado Pago)
   if (/[?&]mp=/.test(location.search)) { s.remove(); raiz.style.background = document.body.style.background = ''; return; }
   var listo = false;
-  function cerrar() { if (listo) return; listo = true; raiz.style.background = document.body.style.background = ''; s.style.opacity = '0'; setTimeout(function () { s.remove(); }, 320); }
+  // Mientras dura la entrada, lo de abajo queda invisible: así el navegador no ofrece autocompletar hasta que termina
+  var oculto = document.createElement('style'); oculto.textContent = 'html.entrando body > :not(#splash) { visibility: hidden; }';
+  document.head.appendChild(oculto); raiz.classList.add('entrando');
+  function cerrar() { if (listo) return; listo = true; raiz.classList.remove('entrando'); raiz.style.background = document.body.style.background = ''; s.style.opacity = '0'; setTimeout(function () { s.remove(); }, 320); }
   var quieto = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var img = document.getElementById('splashLogo');
-  // La animación dura ~1,8 s desde que carga el logo; medio segundo quieta y se abre la app (~2,5 s en total) (no se puede saltear)
-  function programar() { setTimeout(cerrar, quieto ? 700 : 2300); }
+  // La animación dura ~2,2 s desde que carga el logo; medio segundo quieta y se abre la app (~3 s en total) (no se puede saltear)
+  function programar() { setTimeout(cerrar, quieto ? 700 : 2700); }
   if (img.complete) programar(); else { img.onload = programar; img.onerror = cerrar; }
   setTimeout(cerrar, 9000); // por si el logo no carga
 })();
