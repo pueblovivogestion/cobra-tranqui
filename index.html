@@ -122,6 +122,24 @@
   details.carta[open] summary b::before { content:'▾ '; }
   details.carta summary span { color:var(--sub); font-size:14px; }
   details.carta[open] summary { margin-bottom:10px; }
+  /* Tarjeta "Tus ventas": blanca sobre el celeste; en modo oscuro, como las demás */
+  .estad { --carta:#ffffff; --borde:#d6e2ea; --txt:#0b1620; --sub:#4b5b66; --grilla:#e6edf2; --tenue:#c4d2db; --sube:#15803d; --baja:#b91c1c; color:var(--txt); }
+  html.oscuro .estad { --carta:#1a211e; --borde:#2b3631; --txt:#eef3f0; --sub:#9fb0a8; --grilla:#26302b; --tenue:#4b5a53; --sube:#7ee2a8; --baja:#ff8a80; }
+  .estad .tabs button { background:var(--grilla); color:var(--txt); border-radius:999px; padding:6px 16px; }
+  .estad .tabs button.activa { background:var(--txt); color:var(--carta); }
+  .estad button.sec { background:var(--grilla); color:var(--txt); }
+  .estad .et { color:var(--sub); font-size:13px; margin:0; }
+  .estad .grande { font-size:34px; font-weight:700; margin:0; line-height:1.15; font-variant-numeric:tabular-nums; }
+  .estad .comp { font-size:14px; margin:4px 0 2px; }
+  .estad b { white-space:nowrap; }
+  .estad .sube { color:var(--sube); } .estad .baja { color:var(--baja); }
+  .estad .bloque { border-top:1px solid var(--grilla); margin-top:14px; padding-top:12px; }
+  .estad .bloque > p:not(.et) { margin:6px 0 0; font-size:15px; line-height:1.45; }
+  .estad .graf .vacio { background:var(--grilla); color:var(--sub); }
+  .medios { display:flex; height:14px; border-radius:7px; overflow:hidden; gap:2px; margin-top:8px; }
+  .medios i { display:block; height:100%; }
+  .leyenda { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:8px; font-size:13px; color:var(--sub); }
+  .leyenda span::before { content:''; display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; background:var(--c); }
   .pasos { color:var(--sub); padding-left:20px; line-height:1.6; margin:8px 0; }
   .paso { display:flex; gap:12px; align-items:flex-start; margin:12px 0; line-height:1.5; }
   .paso > span { flex:none; width:28px; height:28px; border-radius:50%; background:var(--ok2); color:#fff; font-weight:800;
@@ -243,37 +261,19 @@
       <div id="linkCaja" class="oculto"></div>
     </div>
 
-    <details class="carta" id="detEstad">
-      <summary><b>Estadísticas del negocio</b><span>Ventas, días y horarios</span></summary>
-      <div class="tabs" id="tabsNegocio">
-        <button data-m="transf" class="activa">Solo transferencias</button><button data-m="todo">Con efectivo y tarjetas</button>
-      </div>
-      <p class="ayuda" id="notaNegocio" style="margin:0 0 6px"></p>
-
-      <h3>Mes en curso</h3>
-      <div class="graf" id="nMes"></div>
-
-      <h3>Ventas por día de la semana</h3>
-      <div class="graf" id="nDias"></div>
-      <h3>Ventas por horario</h3>
-      <div class="graf" id="nHoras"></div>
-
-      <h3>Evolución semanal</h3>
-      <div class="graf" id="nSemanas"></div>
-
-      <h3>Detalle por período</h3>
+    <details class="carta estad" id="detEstad">
+      <summary><b>Tus ventas</b><span>Cuánto vendés, cuándo y cómo te pagan</span></summary>
       <div class="tabs" id="tabsPeriodo">
-        <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">Últimos 7 días</button><button data-p="mes">Mes en curso</button>
+        <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">Semana</button><button data-p="mes">Mes</button>
       </div>
-      <div class="kpis">
-        <div><span>Facturación</span><strong id="kTotal">$ 0</strong><em id="kComp"></em></div>
-        <div><span>Operaciones</span><strong id="kCant">0</strong></div>
-        <div><span>Ticket promedio</span><strong id="kProm">$ 0</strong></div>
-      </div>
-      <h3>Distribución horaria</h3>
-      <div class="graf" id="horas"></div>
-      <h3>Medios de pago</h3>
-      <div class="graf" id="porMedio"></div>
+      <p class="et">Vendiste</p>
+      <p class="grande" id="kTotal">$ 0</p>
+      <p class="comp" id="kComp"></p>
+      <p class="et" id="kDetalle"></p>
+
+      <div class="bloque"><p class="et">¿Voy mejor o peor?</p><p id="nRitmo"></p></div>
+      <div class="bloque"><p class="et">¿Cuándo vendo más?</p><div class="graf" id="nDias"></div><p id="nCuando"></p></div>
+      <div class="bloque"><p class="et">¿Cómo me pagan?</p><div id="nMedios"></div></div>
       <div class="fila"><button id="btnExcel" class="sec">Descargar en Excel</button></div>
     </details>
 
@@ -513,24 +513,28 @@
     ventas = reales;
     const total = suma(act), totAnt = suma(ant);
     $('kTotal').textContent = fmt(Math.round(total));
-    $('kCant').textContent = reales.length;
-    $('kProm').textContent = fmt(reales.length ? Math.round(suma(reales) / reales.length) : 0);
+    // Comparación en pesos con el mismo tramo del período anterior
     const comp = $('kComp');
-    const contra = { hoy: 'ayer a esta hora', semana: 'los 7 días anteriores', mes: 'el mes pasado a esta altura' }[periodo];
-    if (totAnt > 0) {
-      const pct = Math.round((total - totAnt) / totAnt * 100);
-      comp.textContent = (pct >= 0 ? '▲ ' : '▼ ') + Math.abs(pct) + '% vs ' + contra; comp.className = pct >= 0 ? 'sube' : 'baja';
-    } else { comp.textContent = ''; }
+    const contra = { hoy: 'ayer a esta hora', semana: 'la semana anterior', mes: 'el mes pasado a esta altura' }[periodo];
+    const dif = Math.round(total - totAnt);
+    if (totAnt > 0 && dif !== 0) {
+      comp.textContent = (dif > 0 ? '▲ ' : '▼ ') + fmt(Math.abs(dif)) + (dif > 0 ? ' más' : ' menos') + ' que ' + contra;
+      comp.className = 'comp ' + (dif > 0 ? 'sube' : 'baja');
+    } else if (totAnt > 0) { comp.textContent = 'Igual que ' + contra; comp.className = 'comp'; }
+    else { comp.textContent = ''; comp.className = 'comp'; }
+    const n = reales.length;
+    $('kDetalle').textContent = n ? `${n} cobro${n > 1 ? 's' : ''} con Mercado Pago · ${fmt(Math.round(suma(reales) / n))} en promedio` : '';
 
-    // Distribución horaria del período
-    const porHora = Array(24).fill(0); act.forEach(x => { porHora[x.t.getHours()] += x.v; });
-    graficoHoras($('horas'), porHora, 'en el período');
-
-    // Medios de pago
-    const medios = {}; act.forEach(x => { const m = String(x.origen).split(' · ')[0]; medios[m] = (medios[m] || 0) + x.v; });
-    const ord = Object.entries(medios).sort((a, b) => b[1] - a[1]);
-    if (!ord.length) $('porMedio').innerHTML = '<div class="vacio">Sin ventas en este período.</div>';
-    else barras($('porMedio'), ord.map(([m, v]) => ({ etq: m, v, valor: `${fmt(Math.round(v))} · ${Math.round(v / (total || 1) * 100)}%` })));
+    // ¿Cómo me pagan? Una barra partida: transferencia, efectivo y tarjeta
+    const MEDIOS = [['Transferencia', '#16a34a'], ['Efectivo', '#64748b'], ['Tarjeta', '#7c6fd6']];
+    const medio = o => (/efectivo/i.test(o) ? 'Efectivo' : /tarjeta|d[eé]bito|cr[eé]dito|prepaga/i.test(o) ? 'Tarjeta' : 'Transferencia');
+    const porMedio = {}; act.forEach(x => { const m = medio(String(x.origen)); porMedio[m] = (porMedio[m] || 0) + x.v; });
+    const conMonto = MEDIOS.filter(([m]) => porMedio[m] > 0);
+    const hayCaja = negocio.turnos.some(tt => Number(tt.efectivo || 0) + Number(tt.tarjetas || 0) > 0);
+    const aviso = hayCaja ? '' : '<p class="et" style="margin-top:8px">El efectivo y las tarjetas se suman cuando el empleado los carga al cerrar el turno.</p>';
+    $('nMedios').innerHTML = !total ? '<p class="et" style="margin-top:6px">Sin ventas en este período.</p>' + aviso
+      : '<div class="medios">' + conMonto.map(([m, c]) => `<i style="width:${porMedio[m] / total * 100}%;background:${c}"></i>`).join('') + '</div>' +
+        '<div class="leyenda">' + conMonto.map(([m, c]) => `<span style="--c:${c}">${m} ${Math.round(porMedio[m] / total * 100)}% · ${fmt(Math.round(porMedio[m]))}</span>`).join('') + '</div>' + aviso;
 
     pintarNegocio();
   }
@@ -675,15 +679,15 @@
     const slot = (W - mL - mR) / items.length, bw = Math.min(24, slot * 0.7);
     let s = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
     [0, paso, tope].forEach(v => {
-      s += `<line x1="${mL}" x2="${W - mR}" y1="${y(v)}" y2="${y(v)}" stroke="${GRILLA}" stroke-width="1"/>` +
-        `<text x="${mL - 6}" y="${y(v) + 4}" fill="${TXT2}" font-size="10" text-anchor="end">${corto(v).replace('$ ', '')}</text>`;
+      s += `<line x1="${mL}" x2="${W - mR}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--grilla,${GRILLA})" stroke-width="1"/>` +
+        `<text x="${mL - 6}" y="${y(v) + 4}" style="fill:var(--sub,${TXT2})" font-size="10" text-anchor="end">${corto(v).replace('$ ', '')}</text>`;
     });
     items.forEach((it, i) => {
       const cx = mL + slot * i + slot / 2, top = y(it.v), base = y(0), h = Math.max(0, base - top), r = Math.min(4, h, bw / 2);
       const x0 = cx - bw / 2;
-      if (h > 0.5) s += `<path d="M${x0},${base} V${top + r} Q${x0},${top} ${x0 + r},${top} H${x0 + bw - r} Q${x0 + bw},${top} ${x0 + bw},${top + r} V${base} Z" fill="${it.fuerte === false ? VERDE_SUAVE : VERDE}"/>`;
-      if (it.rotulo) s += `<text x="${cx}" y="${top - 6}" fill="#eef3f0" font-size="11" font-weight="700" text-anchor="middle">${corto(it.v)}</text>`;
-      if (i % cadaEtq === 0) s += `<text x="${cx}" y="${H - 6}" fill="${TXT2}" font-size="10.5" text-anchor="middle">${escapar(it.etq)}</text>`;
+      if (h > 0.5) s += `<path d="M${x0},${base} V${top + r} Q${x0},${top} ${x0 + r},${top} H${x0 + bw - r} Q${x0 + bw},${top} ${x0 + bw},${top + r} V${base} Z" style="fill:${it.fuerte === false ? `var(--tenue,${VERDE_SUAVE})` : VERDE}"/>`;
+      if (it.rotulo) s += `<text x="${cx}" y="${top - 6}" style="fill:var(--txt,#eef3f0)" font-size="11" font-weight="700" text-anchor="middle">${corto(it.v)}</text>`;
+      if (i % cadaEtq === 0) s += `<text x="${cx}" y="${H - 6}" style="fill:var(--sub,${TXT2})" font-size="10.5" text-anchor="middle">${escapar(it.etq)}</text>`;
       // zona de toque más grande que la barra
       s += `<rect x="${mL + slot * i}" y="${mT}" width="${slot}" height="${H - mT - mB}" fill="transparent" data-tip="${escapar(it.tip)}"/>`;
     });
@@ -699,7 +703,7 @@
 
   // ---------- Cómo viene el negocio ----------
   // Mismos gráficos para "solo transferencias" y para "todo" (transferencias + efectivo y tarjetas de los turnos)
-  let modoNegocio = 'transf', negocio = null;
+  let modoNegocio = 'todo', negocio = null; // siempre todo: transferencias + efectivo y tarjetas de los turnos
   const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const claveDia = d => d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
 
@@ -721,10 +725,11 @@
     const m = negocio.cobros.map(c => ({ t: new Date(c.ts), v: Number(c.monto), origen: c.origen || 'Transferencia', pagador: c.pagador, cobro: true }));
     if (modoNegocio === 'todo') {
       negocio.turnos.forEach(t => {
-        const extra = Number(t.efectivo || 0) + Number(t.tarjetas || 0); if (!extra) return;
         const a = new Date(t.inicio).getTime(), b = Math.max(new Date(t.fin).getTime(), a + 60000);
         const horas = Math.max(1, Math.ceil((b - a) / 3600000));
-        for (let i = 0; i < horas; i++) m.push({ t: new Date(a + i * 3600000), v: extra / horas, origen: 'Efectivo y tarjetas (turnos)', cobro: false });
+        [['Efectivo', Number(t.efectivo || 0)], ['Tarjeta', Number(t.tarjetas || 0)]].forEach(([origen, monto]) => {
+          if (monto) for (let i = 0; i < horas; i++) m.push({ t: new Date(a + i * 3600000), v: monto / horas, origen, cobro: false });
+        });
       });
     }
     return m;
@@ -732,78 +737,61 @@
 
   function pintarNegocio() {
     if (!negocio) return;
-    const hayTurnos = negocio.turnos.some(t => Number(t.efectivo || 0) + Number(t.tarjetas || 0) > 0);
-    $('notaNegocio').textContent = modoNegocio === 'todo'
-      ? (hayTurnos ? 'Suma lo cargado en los cierres de turno.'
-        : 'Todavía no hay efectivo ni tarjetas cargados.')
-      : 'Incluye únicamente cobros por transferencia y Mercado Pago.';
-    const mov = movimientos();
+    const mov = movimientos(), suma = l => l.reduce((a, x) => a + x.v, 0);
     const plata = v => fmt(Math.round(v));
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const primero = mov.length ? Math.min(...mov.map(x => x.t.getTime())) : Date.now();
     const diasConDatos = (Date.now() - primero) / 86400000;
-    const vacio = txt => `<div class="vacio">${txt}</div>`;
 
-    // Mes en curso: mes anterior vs. facturado a la fecha vs. proyección
+    // ¿Voy mejor o peor? A qué cierra el mes si sigue a este ritmo, contra el mes pasado
     const ahora = new Date(), iniMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
     const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1), iniAnt = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
-    const delMes = mov.filter(x => x.t >= iniMes).reduce((a, x) => a + x.v, 0);
-    const mesPasado = mov.filter(x => x.t >= iniAnt && x.t < iniMes).reduce((a, x) => a + x.v, 0);
-    const fr = (ahora - iniMes) / (finMes - iniMes), diasMes = Math.round((finMes - iniMes) / 86400000);
-    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-    const nomMes = cap(ahora.toLocaleDateString('es-AR', { month: 'long' })), nomAnt = cap(iniAnt.toLocaleDateString('es-AR', { month: 'long' }));
-    const filas = [];
-    if (mesPasado > 0) filas.push({ etq: nomAnt + ' (cierre)', v: mesPasado, color: GRIS });
-    filas.push({ etq: nomMes + ' a la fecha', v: delMes, color: VERDE });
-    let pie = `Día ${Math.ceil(fr * diasMes)} de ${diasMes}.`;
-    if (fr >= 0.1 && delMes > 0) {
-      const proy = delMes / fr;
-      filas.push({ etq: nomMes + ' proyectado', v: proy, color: VERDE_SUAVE });
-      if (mesPasado > 0) { const p = Math.round((proy - mesPasado) / mesPasado * 100); pie += ` Proyección vs. ${nomAnt}: <b class="${p >= 0 ? 'sube' : 'baja'}">${p >= 0 ? '+' : '−'}${Math.abs(p)}%</b>`; }
-    } else pie += ' La proyección de cierre aparece desde el día ' + (Math.ceil(diasMes * 0.1) + 1) + '.';
-    barras($('nMes'), filas);
-    $('nMes').insertAdjacentHTML('beforeend', `<div class="pie">${pie}</div>`);
+    const delMes = suma(mov.filter(x => x.t >= iniMes)), mesPasado = suma(mov.filter(x => x.t >= iniAnt && x.t < iniMes));
+    const fr = (ahora - iniMes) / (finMes - iniMes);
+    const nomMes = ahora.toLocaleDateString('es-AR', { month: 'long' }), nomAnt = iniAnt.toLocaleDateString('es-AR', { month: 'long' });
+    let ritmo;
+    if (!delMes) ritmo = 'Todavía no hay ventas este mes.';
+    else if (fr < 0.1) ritmo = `Llevás <b>${plata(delMes)}</b> en ${nomMes}. En unos días te digo cómo vas a cerrar el mes.`;
+    else {
+      // Si hay mes pasado, se asume que el resto del mes sigue como él (así coincide con la comparación de arriba);
+      // si no, ritmo parejo. Es un estimado: redondeado a miles
+      const rm = rango('mes'), antHasta = suma(mov.filter(x => x.t >= rm.antIni && x.t <= rm.antFin));
+      const proy = Math.round((mesPasado > 0 && antHasta > 0 ? delMes * mesPasado / antHasta : delMes / fr) / 1000) * 1000;
+      ritmo = `A este ritmo cerrás ${nomMes} en <b>${plata(proy)}</b>`;
+      if (mesPasado > 0) {
+        const p = Math.round((proy - mesPasado) / mesPasado * 100);
+        ritmo += p === 0 ? `, igual que ${nomAnt}` : `, un <span class="${p > 0 ? 'sube' : 'baja'}">${Math.abs(p)}% ${p > 0 ? 'más' : 'menos'}</span> que ${nomAnt}`;
+      }
+      ritmo += '.';
+    }
+    $('nRitmo').innerHTML = ritmo;
 
-    // Ventas por día de la semana (promedio de hasta 8 semanas)
+    // ¿Cuándo vendo más? Promedio por día de la semana (hasta 8 semanas) y la franja de 3 h más fuerte
     const NOMBRES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const PLURAL = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados'];
     const desde8 = new Date(hoy); desde8.setDate(desde8.getDate() - 55);
     const semanas = Math.max(1, Math.min(8, Math.ceil(diasConDatos / 7)));
     const porDia = Array(7).fill(0); mov.forEach(x => { if (x.t >= desde8) porDia[x.t.getDay()] += x.v; });
     const prom = porDia.map(v => v / semanas);
     if (diasConDatos < 14 || prom.filter(v => v > 0).length < 2) {
-      $('nDias').innerHTML = vacio('Hacen falta 2 semanas de datos.');
-    } else {
-      const orden = [1, 2, 3, 4, 5, 6, 0];
-      const con = orden.filter(i => prom[i] > 0);
-      const mejor = con.reduce((a, b) => (prom[b] > prom[a] ? b : a)), peor = con.reduce((a, b) => (prom[b] < prom[a] ? b : a));
-      columnas($('nDias'), orden.map(i => ({ etq: NOMBRES[i].slice(0, 3), v: prom[i], fuerte: i === mejor, rotulo: i === mejor || i === peor,
-        tip: `${NOMBRES[i]}: ${plata(prom[i])} promedio` })));
-      $('nDias').insertAdjacentHTML('beforeend', `<div class="pie">Promedio por día. Mejor: <b>${NOMBRES[mejor]}</b> · Más bajo: <b>${NOMBRES[peor]}</b></div>`);
+      $('nDias').innerHTML = '<div class="vacio">Te lo muestro cuando tengas 2 semanas de ventas.</div>';
+      $('nCuando').textContent = '';
+      return;
     }
-
-    // Ventas por horario (promedio por hora, horario con ventas)
+    const orden = [1, 2, 3, 4, 5, 6, 0];
+    const mejor = orden.filter(i => prom[i] > 0).reduce((a, b) => (prom[b] > prom[a] ? b : a));
+    columnas($('nDias'), orden.map(i => ({ etq: NOMBRES[i].slice(0, 3), v: prom[i], fuerte: i === mejor, rotulo: i === mejor,
+      tip: `${NOMBRES[i]}: ${plata(prom[i])} promedio` })), { alto: 140 });
     const porHora = Array(24).fill(0); mov.forEach(x => { if (x.t >= desde8) porHora[x.t.getHours()] += x.v; });
     const conVenta = porHora.map((v, h) => (v > 0 ? h : -1)).filter(h => h >= 0);
-    if (diasConDatos < 7 || conVenta.length < 3) {
-      $('nHoras').innerHTML = vacio('Hace falta 1 semana de datos.');
-    } else {
-      graficoHoras($('nHoras'), porHora.map(v => v / Math.max(1, Math.round(diasConDatos > 56 ? 56 : diasConDatos))), 'promedio por día');
+    let cuando = `Los <b>${PLURAL[mejor]}</b> vendés más`;
+    if (conVenta.length >= 3) {
+      const d0 = conVenta[0], d1 = conVenta[conVenta.length - 1];
+      let pico = d0, max = -1;
+      for (let h = d0; h <= Math.max(d0, d1 - 2); h++) { const s = porHora[h] + (porHora[h + 1] || 0) + (porHora[h + 2] || 0); if (s > max) { max = s; pico = h; } }
+      cuando += `, y en general el horario fuerte es de <b>${pico} a ${Math.min(pico + 3, 24)} h</b>`;
     }
-
-    // Evolución semanal: 4 columnas, de la más vieja a la actual
-    const fin0 = new Date(hoy); fin0.setDate(fin0.getDate() + 1);
-    const etiquetas = ['Hace 3 sem.', 'Hace 2 sem.', 'Sem. anterior', 'Últimos 7 días'];
-    const sem = etiquetas.map((e, j) => {
-      const i = 3 - j;
-      const hasta = new Date(fin0); hasta.setDate(hasta.getDate() - 7 * i);
-      const desde = new Date(hasta); desde.setDate(desde.getDate() - 7);
-      const v = mov.filter(x => x.t >= desde && x.t < hasta).reduce((a, x) => a + x.v, 0);
-      const fd = d => d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
-      const ult = new Date(hasta); ult.setDate(ult.getDate() - 1);
-      return { etq: e, v, fuerte: j === 3, rotulo: true, tip: `${fd(desde)} al ${fd(ult)}: ${plata(v)}` };
-    });
-    columnas($('nSemanas'), sem, { alto: 160 });
-    if (sem[2].v > 0) { const p = Math.round((sem[3].v - sem[2].v) / sem[2].v * 100); $('nSemanas').insertAdjacentHTML('beforeend', `<div class="pie">Variación vs. semana anterior: <b class="${p >= 0 ? 'sube' : 'baja'}">${p >= 0 ? '+' : '−'}${Math.abs(p)}%</b></div>`); }
+    $('nCuando').innerHTML = cuando + '.';
   }
 
   // Columnas por hora (solo el rango con ventas), resaltando la franja de 3 h de mayor venta
@@ -820,12 +808,6 @@
     cont.insertAdjacentHTML('beforeend', `<div class="pie">Franja de mayor venta: <b>${hh(pico)} a ${hh(Math.min(pico + 3, 24))}</b></div>`);
   }
 
-  $('tabsNegocio').onclick = e => {
-    const b = e.target.closest('button'); if (!b) return;
-    modoNegocio = b.dataset.m;
-    [...$('tabsNegocio').children].forEach(x => x.classList.toggle('activa', x === b));
-    cargarVentas(false); // el selector cambia toda la tarjeta "Tus ventas"
-  };
   // Para probar los gráficos con datos de ejemplo (no toca la base)
   window.__probarNegocio = datos => { negocio = datos; cargarVentas(false); };
 
