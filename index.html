@@ -202,16 +202,15 @@
     <div class="carta">
       <h2>1. Tu comercio</h2>
       <label>¿Cómo se llama tu comercio?</label><input id="nombre" placeholder="Ej.: Kiosco Lola">
-      <p class="ayuda">Lo ve tu empleado en la caja.</p>
       <div class="fila"><button id="btnGuardar">Guardar</button></div>
     </div>
 
     <div class="carta">
-      <h2>2. Conectá tus cuentas</h2>
-      <p class="sub" style="margin:0">La caja ve cada transferencia al instante.</p>
+      <h2>2. Conectá tu Mercado Pago</h2>
+      <p class="sub" style="margin:0">La caja ve al instante cada cobro que entra a tu Mercado Pago.</p>
       <ul id="cuentasMp"></ul>
       <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
-      <p class="ayuda" id="ayudaMp">Entrá con la cuenta donde te transfieren.</p>
+      <p class="ayuda" id="ayudaMp">Entrá con la cuenta de Mercado Pago donde te transfieren.</p>
       <details class="sub-det" id="detOtrosBancos">
       <summary><b>¿Cobrás en otro banco o billetera?</b><span>Ualá, Cuenta DNI, bancos… (solo Android)</span></summary>
       <p class="sub">Tu celular le pasa a la caja los avisos de tu banco.</p>
@@ -455,7 +454,7 @@
       li.append(a, b); ulMp.append(li);
     });
     const hay = !!(cuentas && cuentas.length);
-    $('btnMp').textContent = hay ? '+ Agregar otra cuenta' : 'Conectar con Mercado Pago';
+    $('btnMp').textContent = hay ? '+ Agregar otra cuenta de Mercado Pago' : 'Conectar con Mercado Pago';
 
     const { data: an } = await sb.from('android_estado').select('ultimo_ping').eq('comercio_id', com.id).maybeSingle();
     const ea = $('estadoAndroid');
