@@ -127,6 +127,19 @@
   .seccion h3 { margin:0 0 8px; font-size:16px; color:var(--txt); }
   .seccion { border-top:1px solid var(--borde); margin-top:14px; padding-top:14px; }
   .opcional { font-size:12px; font-weight:400; color:var(--sub); border:1px solid var(--borde); border-radius:999px; padding:1px 8px; margin-left:4px; vertical-align:middle; }
+  /* Configuración: lista tipo "Ajustes" y pasos */
+  .fila-cfg { display:flex; justify-content:space-between; align-items:center; gap:10px; width:100%; background:none; color:var(--txt);
+    text-align:left; padding:13px 2px; margin:0; border-radius:0; border-bottom:1px solid var(--borde); font-weight:400; font-family:inherit; }
+  .fila-cfg:last-child { border-bottom:0; }
+  .fila-cfg span b { display:block; font-size:16px; } .fila-cfg span em { display:block; font-style:normal; font-size:13px; color:var(--sub); margin-top:2px; }
+  .fila-cfg em.ok { color:#7ee2a8; } .fila-cfg em.mal { color:#ff8a80; }
+  .fila-cfg i { font-style:normal; font-size:24px; color:var(--sub); }
+  .grupo-cfg { color:var(--sub); font-size:12px; margin:20px 0 0; }
+  .et-paso { color:var(--sub); font-size:13px; margin:0; }
+  .barra { display:flex; gap:5px; margin:6px 0 18px; } .barra i { flex:1; height:5px; border-radius:3px; background:var(--borde); }
+  .barra i.hecho { background:var(--ok2); }
+  button.volver { background:none; color:var(--ok2); padding:0; margin:0 0 14px; font-size:15px; }
+  #cfgPagina h2 { margin:0 0 6px; }
   button.grande-ancho { width:100%; margin-top:22px; font-size:18px; padding:14px; }
   /* Perfil: ícono redondo arriba a la derecha y su menú */
   .perfil { float:right; position:relative; margin:0 0 0 8px; }
@@ -260,15 +273,29 @@
   <section id="panel" class="oculto">
     <!-- Configuración: lo primero que ve un dueño nuevo; después se entra desde el menú del perfil -->
     <div id="vistaConfig" class="oculto">
-      <div class="carta">
+      <!-- Lista de configuración (después de la primera vez): cada fila dice cómo está y abre esa parte -->
+      <div class="carta oculto" id="cfgLista">
         <h2 style="margin-top:0">Configuración</h2>
-        <p class="sub" id="configIntro" style="margin:0"></p>
-        <div class="seccion">
-          <h3>1. Nombre del comercio</h3>
-          <label>¿Cómo se llama tu comercio?</label><input id="nombre" placeholder="Ej.: Kiosco Lola">
+        <button class="fila-cfg" data-pag="nombre"><span><b>Nombre del comercio</b><em id="estNombre"></em></span><i aria-hidden="true">›</i></button>
+        <button class="fila-cfg" data-pag="mp"><span><b>Mercado Pago</b><em id="estMp"></em></span><i aria-hidden="true">›</i></button>
+        <button class="fila-cfg" data-pag="caja"><span><b>Caja del mostrador</b><em>Código y QR para vincular</em></span><i aria-hidden="true">›</i></button>
+        <p class="grupo-cfg">Opcional</p>
+        <button class="fila-cfg" data-pag="empleado"><span><b>Qué ve tu empleado</b><em id="estEmpleado"></em></span><i aria-hidden="true">›</i></button>
+        <button class="fila-cfg" data-pag="fotos"><span><b>Comprobantes con foto</b><em id="estFotos"></em></span><i aria-hidden="true">›</i></button>
+        <button class="fila-cfg" data-pag="aparato"><span><b>Este aparato</b><em>Usarlo como caja</em></span><i aria-hidden="true">›</i></button>
+      </div>
+
+      <!-- Cada parte en su propia pantalla (la primera vez, como pasos) -->
+      <div class="carta oculto" id="cfgPagina">
+        <div id="cfgPasos"><p class="et-paso" id="pasoTxt"></p><div class="barra"><i></i><i></i><i></i></div></div>
+        <button class="volver" id="cfgVolver">‹ Configuración</button>
+        <div class="pagina" data-pag="nombre">
+          <h2>¿Cómo se llama tu comercio?</h2>
+          <p class="sub">Es el nombre que va a ver tu empleado en la caja.</p>
+          <input id="nombre" placeholder="Ej.: Kiosco Lola" aria-label="Nombre del comercio">
         </div>
-        <div class="seccion">
-          <h3>2. Mercado Pago</h3>
+        <div class="pagina" data-pag="mp">
+          <h2>Conectá tu Mercado Pago</h2>
           <p class="sub" style="margin:0">La caja ve al instante cada cobro que entra a tu Mercado Pago.</p>
           <ul id="cuentasMp"></ul>
           <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
@@ -286,9 +313,9 @@
           <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. No funciona con iPhone.</p>
       </details>
         </div>
-        <div class="seccion">
-          <h3>3. Caja del mostrador</h3>
-          <p class="sub" style="margin:0">Escaneá el QR desde la caja o escribí el código.</p>
+        <div class="pagina" data-pag="caja">
+          <h2>Vinculá la caja del mostrador</h2>
+          <p class="sub" style="margin:0">En el celular o tablet de la caja, escaneá este QR con la cámara o escribí el código.</p>
           <label>Código de la caja</label><div id="codigoCaja" class="codigo"></div>
           <div id="qr"></div>
           <p class="ayuda">Cada código sirve una vez. <b>Cambiar código</b> desconecta todas las cajas.</p>
@@ -300,13 +327,13 @@
           </div>
           <div id="linkCaja" class="oculto"></div>
         </div>
-        <div class="seccion">
-          <h3>Qué ve tu empleado <span class="opcional">Opcional</span></h3>
+        <div class="pagina" data-pag="empleado">
+          <h2>Qué ve tu empleado</h2>
           <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total vendido</label>
           <p class="ayuda">Ve cada cobro, pero no cuánto se vendió. Vos sí.</p>
         </div>
-        <div class="seccion">
-          <h3>Comprobantes con foto <span class="opcional">Opcional</span></h3>
+        <div class="pagina" data-pag="fotos">
+          <h2>Comprobantes con foto</h2>
           <p class="sub">Si la plata tarda, el empleado le saca foto al comprobante y la caja avisa cuando entra.</p>
           <label>Puede entregar sin esperar hasta:</label>
           <div class="pesos"><span>$</span><input id="umbral" type="number" inputmode="numeric"></div>
@@ -317,14 +344,14 @@
           <input id="cuentas" placeholder="mi.alias.mp, otro.alias">
           <p class="ayuda">Detecta comprobantes hechos a <b>otra</b> cuenta.</p>
         </div>
-        <div class="seccion">
-          <h3>Este aparato <span class="opcional">Opcional</span></h3>
-          <p class="sub" style="margin:0">Para dejarlo en el mostrador.</p>
+        <div class="pagina" data-pag="aparato">
+          <h2>Este aparato</h2>
+          <p class="sub" style="margin:0">Para dejar este celular o tablet en el mostrador.</p>
           <div class="fila">
             <button id="btnModoCaja" class="sec">🧾 Usar este aparato como caja</button>
           </div>
         </div>
-        <button id="btnListo" class="grande-ancho">Listo</button>
+        <button id="cfgBoton" class="grande-ancho">Siguiente</button>
       </div>
     </div>
 
@@ -507,14 +534,13 @@
       li.append(a, b); ulMp.append(li);
     });
     const hay = !!(cuentas && cuentas.length);
-    hayMp = hay;
+    hayMp = hay; pintarLista();
     if (!configRevisada) {
       configRevisada = true;
-      const sinNombre = !(com.nombre || '').trim() || com.nombre === 'Mi comercio';
       let lista = false; try { lista = localStorage.getItem(claveLista()) === '1'; } catch (e) {}
       // Un comercio ya configurado (por ejemplo, en otro aparato) va directo a "Tu negocio".
       // Si vuelve de conectar Mercado Pago sin haber tocado "Listo", sigue en Configuración.
-      if (!lista && !sinNombre && hay && !q.has('mp')) { lista = true; try { localStorage.setItem(claveLista(), '1'); } catch (e) {} }
+      if (!lista && !sinNombre() && hay && !q.has('mp')) { lista = true; try { localStorage.setItem(claveLista(), '1'); } catch (e) {} }
       primeraVez = !lista;
       verVista(lista ? 'negocio' : 'config');
     }
@@ -898,7 +924,7 @@
   $('ocultarTotales').onchange = async () => {
     const { data, error } = await sb.from('comercios').update({ ocultar_totales: $('ocultarTotales').checked }).eq('id', com.id).select().single();
     if (error) return mensaje('No pude guardar: ' + error.message, false);
-    com = data; mensaje($('ocultarTotales').checked ? 'Listo: la caja ya no muestra los totales del día.' : 'Listo: la caja vuelve a mostrar los totales.');
+    com = data; pintarLista(); mensaje($('ocultarTotales').checked ? 'Listo: la caja ya no muestra los totales del día.' : 'Listo: la caja vuelve a mostrar los totales.');
   };
 
   async function guardarDatos() {
@@ -909,28 +935,67 @@
     };
     const { data, error } = await sb.from('comercios').update(cambios).eq('id', com.id).select().single();
     if (error) { mensaje('No pude guardar: ' + error.message, false); return false; }
-    com = data; pintar(); pintarPerfil(); return true;
+    com = data; pintar(); pintarPerfil(); pintarLista(); return true;
   }
 
   // ---------- Vistas: Configuración / Tu negocio ----------
-  let primeraVez = false, hayMp = false;
+  let primeraVez = false, hayMp = false, pagActual = null;
   const claveLista = () => 'configLista:' + com.id;
+  const PASOS = ['nombre', 'mp', 'caja'];
+  const sinNombre = () => !(com.nombre || '').trim() || com.nombre === 'Mi comercio';
   function verVista(v) {
     $('vistaConfig').classList.toggle('oculto', v !== 'config');
     $('vistaNegocio').classList.toggle('oculto', v !== 'negocio');
-    $('configIntro').textContent = primeraVez ? 'Completá estos datos para empezar. Cuando termines, tocá "Listo".' : 'Cambiá lo que necesites y tocá "Guardar".';
-    $('btnListo').textContent = primeraVez ? 'Listo' : 'Guardar';
+    // La primera vez: el paso que falta (al volver de Mercado Pago sigue donde quedó). Después: la lista.
+    if (v === 'config') { if (primeraVez) abrirPagina(sinNombre() ? 'nombre' : !hayMp ? 'mp' : 'caja'); else verLista(); }
     scrollTo(0, 0);
   }
-  $('btnListo').onclick = async () => {
-    if (!$('nombre').value.trim()) { mensaje('Poné el nombre de tu comercio.', false); $('nombre').focus(); scrollTo(0, 0); return; }
-    if (primeraVez && !hayMp && !confirm('Todavía no conectaste Mercado Pago: la caja no va a ver los cobros. ¿Seguir igual?')) return;
-    if (!await guardarDatos()) return;
+  function verLista() {
+    pintarLista();
+    $('cfgPagina').classList.add('oculto'); $('cfgLista').classList.remove('oculto');
+    scrollTo(0, 0);
+  }
+  function abrirPagina(pag) {
+    pagActual = pag;
+    $('cfgLista').classList.add('oculto'); $('cfgPagina').classList.remove('oculto');
+    document.querySelectorAll('#cfgPagina .pagina').forEach(p => p.classList.toggle('oculto', p.dataset.pag !== pag));
+    const paso = primeraVez ? PASOS.indexOf(pag) : -1;
+    $('cfgPasos').classList.toggle('oculto', paso < 0);
+    $('cfgVolver').classList.toggle('oculto', primeraVez);
+    if (paso >= 0) {
+      $('pasoTxt').textContent = `Paso ${paso + 1} de ${PASOS.length}`;
+      document.querySelectorAll('#cfgPasos .barra i').forEach((x, i) => x.classList.toggle('hecho', i <= paso));
+    }
+    // Solo "Nombre" y "Comprobantes" tienen datos para guardar; el resto se aplica al tocar
+    $('cfgBoton').textContent = primeraVez ? (pag === 'caja' ? 'Listo' : 'Siguiente') : 'Guardar';
+    $('cfgBoton').classList.toggle('oculto', !primeraVez && pag !== 'nombre' && pag !== 'fotos');
+    scrollTo(0, 0);
+  }
+  function pintarLista() {
+    if (!com) return;
+    $('estNombre').textContent = sinNombre() ? 'Sin nombre' : com.nombre;
+    $('estMp').textContent = hayMp ? 'Conectado' : 'Sin conectar'; $('estMp').className = hayMp ? 'ok' : 'mal';
+    $('estEmpleado').textContent = com.ocultar_totales ? 'No ve el total vendido' : 'Ve el total vendido';
+    $('estFotos').textContent = Number(com.umbral) > 0 ? 'Entrega sin esperar hasta ' + fmt(com.umbral) : 'Siempre espera a que entre la plata';
+  }
+  document.querySelectorAll('.fila-cfg').forEach(x => { x.onclick = () => abrirPagina(x.dataset.pag); });
+  $('cfgVolver').onclick = verLista;
+  $('cfgBoton').onclick = async () => {
+    if (pagActual === 'nombre' && !$('nombre').value.trim()) { mensaje('Poné el nombre de tu comercio.', false); $('nombre').focus(); return; }
+    if (!primeraVez) { if (!await guardarDatos()) return; mensaje('Guardado.'); verLista(); return; }
+    if (pagActual === 'nombre') { if (!await guardarDatos()) return; abrirPagina('mp'); return; }
+    if (pagActual === 'mp') {
+      if (!hayMp && !confirm('Todavía no conectaste Mercado Pago: la caja no va a ver los cobros. ¿Seguir igual?')) return;
+      abrirPagina('caja'); return;
+    }
     try { localStorage.setItem(claveLista(), '1'); } catch (e) {}
-    const era = primeraVez; primeraVez = false;
+    primeraVez = false;
     verVista('negocio');
-    mensaje(era ? 'Listo, ya está todo configurado.' : 'Guardado.');
+    mensaje('Listo, ya está todo configurado.');
   };
+
+  // Para probar la configuración con datos de ejemplo (solo cambia la pantalla, no toca la base)
+  window.__probarConfig = (c, hay, primera) => { com = c; hayMp = hay; primeraVez = primera; pintar(); pintarPerfil(); verVista("config"); };
 
   // ---------- Perfil ----------
   let emailDueno = '';
