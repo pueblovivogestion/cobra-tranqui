@@ -126,6 +126,7 @@
   details.solapa summary b { font-size:20px; }
   .seccion h3 { margin:0 0 8px; font-size:16px; color:var(--txt); }
   .seccion { border-top:1px solid var(--borde); margin-top:14px; padding-top:14px; }
+  .opcional { font-size:12px; font-weight:400; color:var(--sub); border:1px solid var(--borde); border-radius:999px; padding:1px 8px; margin-left:4px; vertical-align:middle; }
   button.grande-ancho { width:100%; margin-top:22px; font-size:18px; padding:14px; }
   /* Perfil: ícono redondo arriba a la derecha y su menú */
   .perfil { float:right; position:relative; margin:0 0 0 8px; }
@@ -300,12 +301,12 @@
           <div id="linkCaja" class="oculto"></div>
         </div>
         <div class="seccion">
-          <h3>Qué ve tu empleado</h3>
+          <h3>Qué ve tu empleado <span class="opcional">Opcional</span></h3>
           <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total vendido</label>
           <p class="ayuda">Ve cada cobro, pero no cuánto se vendió. Vos sí.</p>
         </div>
         <div class="seccion">
-          <h3>Comprobantes con foto</h3>
+          <h3>Comprobantes con foto <span class="opcional">Opcional</span></h3>
           <p class="sub">Si la plata tarda, el empleado le saca foto al comprobante y la caja avisa cuando entra.</p>
           <label>Puede entregar sin esperar hasta:</label>
           <div class="pesos"><span>$</span><input id="umbral" type="number" inputmode="numeric"></div>
@@ -317,7 +318,7 @@
           <p class="ayuda">Detecta comprobantes hechos a <b>otra</b> cuenta.</p>
         </div>
         <div class="seccion">
-          <h3>Este aparato</h3>
+          <h3>Este aparato <span class="opcional">Opcional</span></h3>
           <p class="sub" style="margin:0">Para dejarlo en el mostrador.</p>
           <div class="fila">
             <button id="btnModoCaja" class="sec">🧾 Usar este aparato como caja</button>
@@ -329,6 +330,11 @@
 
     <!-- Tu negocio: lo de todos los días, todo abierto -->
     <div id="vistaNegocio" class="oculto">
+      <div class="carta oculto" id="sinCobros">
+        <h2 style="margin-top:0">Todavía no se registraron cobros</h2>
+        <p class="sub">Cuando ingrese un pago en tu cuenta de Mercado Pago, se va a mostrar acá y en la caja del mostrador.</p>
+        <div class="fila"><button id="btnPrueba" class="sec">Enviar un cobro de prueba</button></div>
+      </div>
       <details class="carta estad" id="detEstad" open>
         <summary><b>Tus ventas</b><span>Cuánto vendés, cuándo y cómo te pagan</span></summary>
       <div class="tabs" id="tabsPeriodo">
@@ -524,6 +530,7 @@
       .order('ts', { ascending: false }).limit(15);
     const ul = $('cobros'); ul.innerHTML = '';
     if (!cobros || !cobros.length) ul.innerHTML = '<li><span class="d">Todavía no entró ningún cobro.</span></li>';
+    $('sinCobros').classList.toggle('oculto', !!(cobros && cobros.length));
     (cobros || []).forEach(c => {
       const li = document.createElement('li');
       if (c.devuelto) li.style.opacity = '.55';
@@ -970,6 +977,7 @@
   $('btnCopiarAndroid').onclick = () => copiar(com.codigo_android, 'Código');
   $('btnCopiarCaja').onclick = () => copiar(linkCaja(), 'Link');
   $('btnAbrirCaja').onclick = () => window.open(linkCaja(), '_blank');
+  $('btnPrueba').onclick = () => $('btnSimular').click();
   $('btnSimular').onclick = async () => {
     await fetch(window.CAJA_NUBE_URL + '?t=' + com.token_caja, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion: 'simular' }) });
     mensaje('Cobro de prueba enviado: tiene que aparecer en la caja.'); refrescar();
