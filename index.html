@@ -116,16 +116,18 @@
   label.check { display:flex; gap:10px; align-items:center; color:var(--txt); font-size:16px; }
   label.check input { width:22px; height:22px; }
   @media (max-width:480px) { .kpis strong { font-size:16px; } }
-  details.carta summary { cursor:pointer; list-style:none; display:flex; flex-direction:column; gap:4px; }
-  details.carta summary::-webkit-details-marker { display:none; }
-  details.carta summary b { font-size:18px; } details.carta summary b::before { content:'▸ '; color:var(--ok2); }
-  details.carta[open] summary b::before { content:'▾ '; }
-  details.carta summary span { color:var(--sub); font-size:14px; }
-  details.carta[open] summary { margin-bottom:10px; }
+  details.carta > summary { cursor:pointer; list-style:none; display:flex; flex-direction:column; gap:4px; }
+  details.carta > summary::-webkit-details-marker { display:none; }
+  details.carta > summary b { font-size:18px; } details.carta > summary b::before { content:'▸ '; color:var(--ok2); }
+  details.carta[open] > summary b::before { content:'▾ '; }
+  details.carta > summary span { color:var(--sub); font-size:14px; }
+  details.carta[open] > summary { margin-bottom:10px; }
   /* Solapas del panel y desplegables de adentro (separados por una línea) */
   details.solapa summary b { font-size:20px; }
   .seccion h3 { margin:0 0 8px; font-size:16px; color:var(--txt); }
   .seccion { border-top:1px solid var(--borde); margin-top:14px; padding-top:14px; }
+  .salir { text-align:center; margin:18px 0 8px; }
+  button.enlace { background:none; border:0; color:var(--sobreFondo); text-decoration:underline; font-size:14px; font-weight:400; padding:6px; cursor:pointer; }
   details.interno { border-top:1px solid var(--borde); padding-top:12px; margin-top:12px; }
   details.interno summary { cursor:pointer; list-style:none; display:flex; flex-direction:column; gap:2px; }
   details.interno summary::-webkit-details-marker { display:none; }
@@ -231,9 +233,37 @@
 
   <!-- Panel -->
   <section id="panel" class="oculto">
-    <!-- Solapa 1: lo que se configura una vez -->
+    <!-- Solapa 1: lo de todos los días (arranca abierta) -->
+    <details class="carta solapa" id="detNegocio" open>
+      <summary><b>Tu negocio</b><span>Ventas, cobros y cierres de turno</span></summary>
+      <details class="interno estad" id="detEstad">
+        <summary><b>Tus ventas</b><span>Cuánto vendés, cuándo y cómo te pagan</span></summary>
+        <div class="tabs" id="tabsPeriodo">
+          <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">Semana</button><button data-p="mes">Mes</button>
+        </div>
+        <p class="et">Vendiste</p>
+        <p class="grande" id="kTotal">$ 0</p>
+        <p class="comp" id="kComp"></p>
+        <p class="et" id="kDetalle"></p>
+  
+        <div class="bloque"><p class="et">¿Voy mejor o peor?</p><p id="nRitmo"></p></div>
+        <div class="bloque"><p class="et">¿Cuándo vendo más?</p><div class="graf" id="nDias"></div><p id="nCuando"></p></div>
+        <div class="bloque"><p class="et">¿Cómo me pagan?</p><div id="nMedios"></div></div>
+        <div class="fila"><button id="btnExcel" class="sec">Descargar en Excel</button></div>
+      </details>
+      <details class="interno" id="detCobros" open>
+        <summary><b>Últimos cobros</b><span>Lo último que entró</span></summary>
+        <ul id="cobros"></ul>
+      </details>
+      <details class="interno" id="detTurnos">
+        <summary><b>Cierres de turno</b><span>El resumen de cada turno</span></summary>
+        <ul id="turnos"></ul>
+      </details>
+    </details>
+
+    <!-- Solapa 2: todo lo que se configura -->
     <details class="carta solapa" id="detConfig">
-      <summary><b>Conectá tu comercio</b><span>Nombre, Mercado Pago y la caja del mostrador</span></summary>
+      <summary><b>Configuración</b><span>Nombre, Mercado Pago, la caja y opciones</span></summary>
       <div class="seccion">
         <h3>Nombre del comercio</h3>
         <label>¿Cómo se llama tu comercio?</label><input id="nombre" placeholder="Ej.: Kiosco Lola">
@@ -272,41 +302,13 @@
         </div>
         <div id="linkCaja" class="oculto"></div>
       </div>
-    </details>
-
-    <!-- Solapa 2: lo de todos los días y el resto de las opciones -->
-    <details class="carta solapa" id="detNegocio">
-      <summary><b>Tu negocio</b><span>Ventas, cobros, turnos y opciones</span></summary>
-      <details class="interno estad" id="detEstad">
-        <summary><b>Tus ventas</b><span>Cuánto vendés, cuándo y cómo te pagan</span></summary>
-        <div class="tabs" id="tabsPeriodo">
-          <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">Semana</button><button data-p="mes">Mes</button>
-        </div>
-        <p class="et">Vendiste</p>
-        <p class="grande" id="kTotal">$ 0</p>
-        <p class="comp" id="kComp"></p>
-        <p class="et" id="kDetalle"></p>
-  
-        <div class="bloque"><p class="et">¿Voy mejor o peor?</p><p id="nRitmo"></p></div>
-        <div class="bloque"><p class="et">¿Cuándo vendo más?</p><div class="graf" id="nDias"></div><p id="nCuando"></p></div>
-        <div class="bloque"><p class="et">¿Cómo me pagan?</p><div id="nMedios"></div></div>
-        <div class="fila"><button id="btnExcel" class="sec">Descargar en Excel</button></div>
-      </details>
-      <details class="interno" id="detCobros" open>
-        <summary><b>Últimos cobros</b><span>Lo último que entró</span></summary>
-        <ul id="cobros"></ul>
-      </details>
-      <details class="interno" id="detTurnos">
-        <summary><b>Cierres de turno</b><span>El resumen de cada turno</span></summary>
-        <ul id="turnos"></ul>
-      </details>
-      <details class="interno">
-        <summary><b>Qué ve tu empleado</b><span>Ocultarle el total vendido</span></summary>
+      <div class="seccion">
+        <h3>Qué ve tu empleado</h3>
         <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total vendido</label>
         <p class="ayuda">Ve cada cobro, pero no cuánto se vendió. Vos sí.</p>
-      </details>
-      <details class="interno">
-        <summary><b>Comprobantes con foto</b><span>Cuando la plata tarda en llegar</span></summary>
+      </div>
+      <div class="seccion">
+        <h3>Comprobantes con foto</h3>
         <p class="sub">Si la plata tarda, el empleado le saca foto al comprobante y la caja avisa cuando entra.</p>
         <label>Puede entregar sin esperar hasta:</label>
         <div class="pesos"><span>$</span><input id="umbral" type="number" inputmode="numeric"></div>
@@ -317,16 +319,17 @@
         <input id="cuentas" placeholder="mi.alias.mp, otro.alias">
         <p class="ayuda">Detecta comprobantes hechos a <b>otra</b> cuenta.</p>
         <div class="fila"><button id="btnGuardar2">Guardar</button></div>
-      </details>
-      <details class="interno">
-        <summary><b>Este aparato</b><span>Usarlo como caja o cerrar sesión</span></summary>
-        <p class="sub" style="margin:0">Para dejarlo en el mostrador.</p>
+      </div>
+      <div class="seccion">
+        <h3>Este aparato</h3>
+        <p class="sub" style="margin:0">Para dejar este celular o tablet en el mostrador.</p>
         <div class="fila">
           <button id="btnModoCaja" class="sec">🧾 Usar este aparato como caja</button>
-          <button id="btnSalir" class="sec">Cerrar sesión</button>
         </div>
-      </details>
+      </div>
     </details>
+
+    <p class="salir"><button id="btnSalir" class="enlace">Cerrar sesión</button></p>
   </section>
 </main>
 
@@ -451,7 +454,9 @@
     $('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2 });
   }
 
-  let configRevisada = false; // "Tu comercio y Mercado Pago" se abre solo la primera vez si falta configurar
+  let configRevisada = false; // "Configuración" se abre sola (y va arriba) la primera vez si falta configurar
+  try { if (localStorage.getItem('negocioCerrado') === '1') $('detNegocio').open = false; } catch (e) {}
+  $('detNegocio').addEventListener('toggle', () => { try { localStorage.setItem('negocioCerrado', $('detNegocio').open ? '0' : '1'); } catch (e) {} });
   async function refrescar() {
     // Los códigos cortos cambian cada vez que se usan: mostrar siempre el vigente
     const { data: cods } = await sb.from('comercios').select('codigo_caja, codigo_android').eq('id', com.id).maybeSingle();
@@ -473,7 +478,7 @@
     if (!configRevisada) {
       configRevisada = true;
       const sinNombre = !(com.nombre || '').trim() || com.nombre === 'Mi comercio';
-      if (sinNombre || !hay) $('detConfig').open = true;
+      if (sinNombre || !hay) { $('detConfig').open = true; $('panel').prepend($('detConfig')); }
     }
     $('btnMp').textContent = hay ? '+ Agregar otra cuenta de Mercado Pago' : 'Conectar con Mercado Pago';
 
