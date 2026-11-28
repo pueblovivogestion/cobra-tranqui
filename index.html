@@ -124,6 +124,8 @@
   details.carta[open] summary { margin-bottom:10px; }
   /* Solapas del panel y desplegables de adentro (separados por una línea) */
   details.solapa summary b { font-size:20px; }
+  .seccion h3 { margin:0 0 8px; font-size:16px; color:var(--txt); }
+  .seccion { border-top:1px solid var(--borde); margin-top:14px; padding-top:14px; }
   details.interno { border-top:1px solid var(--borde); padding-top:12px; margin-top:12px; }
   details.interno summary { cursor:pointer; list-style:none; display:flex; flex-direction:column; gap:2px; }
   details.interno summary::-webkit-details-marker { display:none; }
@@ -232,13 +234,13 @@
     <!-- Solapa 1: lo que se configura una vez -->
     <details class="carta solapa" id="detConfig">
       <summary><b>Conectá tu comercio</b><span>Nombre, Mercado Pago y la caja del mostrador</span></summary>
-      <details class="interno" id="detNombre">
-        <summary><b>Nombre del comercio</b><span>Cómo aparece en la caja</span></summary>
+      <div class="seccion">
+        <h3>Nombre del comercio</h3>
         <label>¿Cómo se llama tu comercio?</label><input id="nombre" placeholder="Ej.: Kiosco Lola">
         <div class="fila"><button id="btnGuardar">Guardar</button></div>
-      </details>
-      <details class="interno" id="detMp">
-        <summary><b>Mercado Pago</b><span>La cuenta donde te transfieren</span></summary>
+      </div>
+      <div class="seccion">
+        <h3>Mercado Pago</h3>
         <p class="sub" style="margin:0">La caja ve al instante cada cobro que entra a tu Mercado Pago.</p>
         <ul id="cuentasMp"></ul>
         <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
@@ -255,9 +257,9 @@
         <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button><button id="btnNuevoAndroid" class="sec">Desvincular celular</button></div>
         <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. No funciona con iPhone.</p>
       </details>
-      </details>
-      <details class="interno" id="detCaja">
-        <summary><b>Caja del mostrador</b><span>Código y QR para vincular la caja</span></summary>
+      </div>
+      <div class="seccion">
+        <h3>Caja del mostrador</h3>
         <p class="sub" style="margin:0">Escaneá el QR desde la caja o escribí el código.</p>
         <label>Código de la caja</label><div id="codigoCaja" class="codigo"></div>
         <div id="qr"></div>
@@ -269,7 +271,7 @@
           <button id="btnNuevoLink" class="sec">Cambiar código</button>
         </div>
         <div id="linkCaja" class="oculto"></div>
-      </details>
+      </div>
     </details>
 
     <!-- Solapa 2: lo de todos los días y el resto de las opciones -->
@@ -471,7 +473,7 @@
     if (!configRevisada) {
       configRevisada = true;
       const sinNombre = !(com.nombre || '').trim() || com.nombre === 'Mi comercio';
-      if (sinNombre || !hay) { $('detConfig').open = true; $('detNombre').open = sinNombre; $('detMp').open = !hay; }
+      if (sinNombre || !hay) $('detConfig').open = true;
     }
     $('btnMp').textContent = hay ? '+ Agregar otra cuenta de Mercado Pago' : 'Conectar con Mercado Pago';
 
