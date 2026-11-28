@@ -126,6 +126,20 @@
   details.solapa summary b { font-size:20px; }
   .seccion h3 { margin:0 0 8px; font-size:16px; color:var(--txt); }
   .seccion { border-top:1px solid var(--borde); margin-top:14px; padding-top:14px; }
+  button.grande-ancho { width:100%; margin-top:22px; font-size:18px; padding:14px; }
+  /* Perfil: ícono redondo arriba a la derecha y su menú */
+  .perfil { float:right; position:relative; margin:0 0 0 8px; }
+  .avatar { width:44px; height:44px; border-radius:50%; padding:0; font-size:19px; font-weight:700; background:var(--sobreFondo); color:#fff;
+    box-shadow:0 4px 12px rgba(12,74,110,.3); }
+  html.oscuro .avatar { background:var(--ok2); }
+  .menu { position:absolute; right:0; top:52px; width:270px; z-index:60; padding:8px; margin:0; box-shadow:0 14px 34px rgba(0,0,0,.35); }
+  .menu-cab { padding:10px 12px 12px; border-bottom:1px solid var(--borde); margin-bottom:6px; }
+  .menu-cab b { display:block; font-size:16px; } .menu-cab span { display:block; color:var(--sub); font-size:13px; overflow-wrap:anywhere; }
+  .menu > button, .menu .menu-op { display:flex; align-items:center; justify-content:flex-start; width:100%; background:transparent; color:var(--txt);
+    font-weight:400; font-size:15px; text-align:left; padding:11px 12px; border-radius:10px; margin:0; }
+  .menu .menu-op { justify-content:space-between; cursor:pointer; opacity:1; }
+  .menu > button:hover, .menu .menu-op:hover { background:rgba(255,255,255,.07); }
+  .menu > button.salir { color:#ff8a80; border-top:1px solid var(--borde); border-radius:0 0 10px 10px; margin-top:6px; }
   details.interno { border-top:1px solid var(--borde); padding-top:12px; margin-top:12px; }
   details.interno summary { cursor:pointer; list-style:none; display:flex; flex-direction:column; gap:2px; }
   details.interno summary::-webkit-details-marker { display:none; }
@@ -189,6 +203,18 @@
 </script>
 <main>
   <div class="tema"><label class="interruptor">Modo oscuro <input type="checkbox" id="tema" role="switch"><i></i></label></div>
+  <div class="perfil oculto" id="perfil">
+    <button id="btnPerfil" class="avatar" aria-label="Tu perfil" aria-haspopup="menu" aria-expanded="false">?</button>
+    <div id="menuPerfil" class="carta menu oculto" role="menu">
+      <div class="menu-cab"><b id="perfilNombre"></b><span id="perfilEmail"></span></div>
+      <button data-ir="negocio" role="menuitem">📊 Tu negocio</button>
+      <button data-ir="config" role="menuitem">⚙️ Configuración</button>
+      <label class="interruptor menu-op">🌙 Modo oscuro <input type="checkbox" id="tema2" role="switch"><i></i></label>
+      <button id="menuClave" role="menuitem">🔑 Cambiar contraseña</button>
+      <button id="menuCaja" role="menuitem">🧾 Usar este aparato como caja</button>
+      <button id="btnSalir" role="menuitem" class="salir">Cerrar sesión</button>
+    </div>
+  </div>
   <img src="iconos/logo-redondo.svg" alt="" width="64" height="64" style="display:block;margin:0 0 10px;border-radius:15px" onerror="this.remove()"><h1>Cobrá Tranqui</h1>
   <p class="sub">Chau comprobantes truchos.</p>
   <div id="mensaje" class="msg oculto"></div>
@@ -231,102 +257,102 @@
 
   <!-- Panel -->
   <section id="panel" class="oculto">
-    <!-- Solapa 1: lo que se configura una vez -->
-    <details class="carta solapa" id="detConfig">
-      <summary><b>Conectá tu comercio</b><span>Nombre, Mercado Pago y la caja del mostrador</span></summary>
-      <div class="seccion">
-        <h3>Nombre del comercio</h3>
-        <label>¿Cómo se llama tu comercio?</label><input id="nombre" placeholder="Ej.: Kiosco Lola">
-        <div class="fila"><button id="btnGuardar">Guardar</button></div>
-      </div>
-      <div class="seccion">
-        <h3>Mercado Pago</h3>
-        <p class="sub" style="margin:0">La caja ve al instante cada cobro que entra a tu Mercado Pago.</p>
-        <ul id="cuentasMp"></ul>
-        <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
-        <p class="ayuda" id="ayudaMp">Entrá con la cuenta de Mercado Pago donde te transfieren.</p>
-        <!-- Otros bancos vía app Android: oculto por ahora (nos enfocamos en Mercado Pago) -->
-        <details class="sub-det" id="detOtrosBancos" hidden>
-        <summary><b>¿Cobrás en otro banco o billetera?</b><span>Ualá, Cuenta DNI, bancos… (solo Android)</span></summary>
-        <p class="sub">Tu celular le pasa a la caja los avisos de tu banco.</p>
-        <div class="paso"><span>1</span><div>Descargá la app en tu <b>celular Android</b>:<br>
-          <a class="boton-link" href="cobra-tranqui.apk" download>⬇️ Descargar Cobrá Tranqui para Android</a></div></div>
-        <div class="paso"><span>2</span><div>Abrila y tocá <b>"Dar acceso a notificaciones"</b>.</div></div>
-        <div class="paso"><span>3</span><div>En <b>"Vincular con la nube"</b> poné este código:</div></div>
-        <div id="codigoAndroid" class="codigo"></div>
-        <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button><button id="btnNuevoAndroid" class="sec">Desvincular celular</button></div>
-        <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. No funciona con iPhone.</p>
-      </details>
-      </div>
-      <div class="seccion">
-        <h3>Caja del mostrador</h3>
-        <p class="sub" style="margin:0">Escaneá el QR desde la caja o escribí el código.</p>
-        <label>Código de la caja</label><div id="codigoCaja" class="codigo"></div>
-        <div id="qr"></div>
-        <p class="ayuda">Cada código sirve una vez. <b>Cambiar código</b> desconecta todas las cajas.</p>
-        <div class="fila">
-          <button id="btnAbrirCaja" class="sec">Ver la caja</button>
-          <button id="btnSimular" class="sec">Simular un cobro de prueba</button>
-          <button id="btnCopiarCaja" class="sec">Copiar link</button>
-          <button id="btnNuevoLink" class="sec">Cambiar código</button>
+    <!-- Configuración: lo primero que ve un dueño nuevo; después se entra desde el menú del perfil -->
+    <div id="vistaConfig" class="oculto">
+      <div class="carta">
+        <h2 style="margin-top:0">Configuración</h2>
+        <p class="sub" id="configIntro" style="margin:0"></p>
+        <div class="seccion">
+          <h3>1. Nombre del comercio</h3>
+          <label>¿Cómo se llama tu comercio?</label><input id="nombre" placeholder="Ej.: Kiosco Lola">
         </div>
-        <div id="linkCaja" class="oculto"></div>
+        <div class="seccion">
+          <h3>2. Mercado Pago</h3>
+          <p class="sub" style="margin:0">La caja ve al instante cada cobro que entra a tu Mercado Pago.</p>
+          <ul id="cuentasMp"></ul>
+          <div class="fila"><button id="btnMp" class="mp">Conectar con Mercado Pago</button></div>
+          <p class="ayuda" id="ayudaMp">Entrá con la cuenta de Mercado Pago donde te transfieren.</p>
+          <!-- Otros bancos vía app Android: oculto por ahora (nos enfocamos en Mercado Pago) -->
+          <details class="sub-det" id="detOtrosBancos" hidden>
+          <summary><b>¿Cobrás en otro banco o billetera?</b><span>Ualá, Cuenta DNI, bancos… (solo Android)</span></summary>
+          <p class="sub">Tu celular le pasa a la caja los avisos de tu banco.</p>
+          <div class="paso"><span>1</span><div>Descargá la app en tu <b>celular Android</b>:<br>
+            <a class="boton-link" href="cobra-tranqui.apk" download>⬇️ Descargar Cobrá Tranqui para Android</a></div></div>
+          <div class="paso"><span>2</span><div>Abrila y tocá <b>"Dar acceso a notificaciones"</b>.</div></div>
+          <div class="paso"><span>3</span><div>En <b>"Vincular con la nube"</b> poné este código:</div></div>
+          <div id="codigoAndroid" class="codigo"></div>
+          <div class="fila"><span id="estadoAndroid" class="estado">…</span><button id="btnCopiarAndroid" class="sec">Copiar código</button><button id="btnNuevoAndroid" class="sec">Desvincular celular</button></div>
+          <p class="ayuda">Cuando diga <b>"✅ Celular conectado"</b>, listo. No funciona con iPhone.</p>
+      </details>
+        </div>
+        <div class="seccion">
+          <h3>3. Caja del mostrador</h3>
+          <p class="sub" style="margin:0">Escaneá el QR desde la caja o escribí el código.</p>
+          <label>Código de la caja</label><div id="codigoCaja" class="codigo"></div>
+          <div id="qr"></div>
+          <p class="ayuda">Cada código sirve una vez. <b>Cambiar código</b> desconecta todas las cajas.</p>
+          <div class="fila">
+            <button id="btnAbrirCaja" class="sec">Ver la caja</button>
+            <button id="btnSimular" class="sec">Simular un cobro de prueba</button>
+            <button id="btnCopiarCaja" class="sec">Copiar link</button>
+            <button id="btnNuevoLink" class="sec">Cambiar código</button>
+          </div>
+          <div id="linkCaja" class="oculto"></div>
+        </div>
+        <div class="seccion">
+          <h3>Qué ve tu empleado</h3>
+          <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total vendido</label>
+          <p class="ayuda">Ve cada cobro, pero no cuánto se vendió. Vos sí.</p>
+        </div>
+        <div class="seccion">
+          <h3>Comprobantes con foto</h3>
+          <p class="sub">Si la plata tarda, el empleado le saca foto al comprobante y la caja avisa cuando entra.</p>
+          <label>Puede entregar sin esperar hasta:</label>
+          <div class="pesos"><span>$</span><input id="umbral" type="number" inputmode="numeric"></div>
+          <p class="ayuda">Más que eso, espera a que entre. Con 0 espera siempre.</p>
+          <label>Minutos hasta avisar "NO LLEGÓ":</label>
+          <input id="minutos" type="number" inputmode="numeric">
+          <label>Tus alias o CVU (separados por coma)</label>
+          <input id="cuentas" placeholder="mi.alias.mp, otro.alias">
+          <p class="ayuda">Detecta comprobantes hechos a <b>otra</b> cuenta.</p>
+        </div>
+        <div class="seccion">
+          <h3>Este aparato</h3>
+          <p class="sub" style="margin:0">Para dejarlo en el mostrador.</p>
+          <div class="fila">
+            <button id="btnModoCaja" class="sec">🧾 Usar este aparato como caja</button>
+          </div>
+        </div>
+        <button id="btnListo" class="grande-ancho">Listo</button>
       </div>
-    </details>
+    </div>
 
-    <!-- Solapa 2: lo de todos los días y el resto de las opciones -->
-    <details class="carta solapa" id="detNegocio">
-      <summary><b>Tu negocio</b><span>Ventas, cobros, turnos y opciones</span></summary>
-      <details class="interno estad" id="detEstad">
+    <!-- Tu negocio: lo de todos los días, todo abierto -->
+    <div id="vistaNegocio" class="oculto">
+      <details class="carta estad" id="detEstad" open>
         <summary><b>Tus ventas</b><span>Cuánto vendés, cuándo y cómo te pagan</span></summary>
-        <div class="tabs" id="tabsPeriodo">
-          <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">Semana</button><button data-p="mes">Mes</button>
-        </div>
-        <p class="et">Vendiste</p>
-        <p class="grande" id="kTotal">$ 0</p>
-        <p class="comp" id="kComp"></p>
-        <p class="et" id="kDetalle"></p>
+      <div class="tabs" id="tabsPeriodo">
+        <button data-p="hoy" class="activa">Hoy</button><button data-p="semana">Semana</button><button data-p="mes">Mes</button>
+      </div>
+      <p class="et">Vendiste</p>
+      <p class="grande" id="kTotal">$ 0</p>
+      <p class="comp" id="kComp"></p>
+      <p class="et" id="kDetalle"></p>
   
-        <div class="bloque"><p class="et">¿Voy mejor o peor?</p><p id="nRitmo"></p></div>
-        <div class="bloque"><p class="et">¿Cuándo vendo más?</p><div class="graf" id="nDias"></div><p id="nCuando"></p></div>
-        <div class="bloque"><p class="et">¿Cómo me pagan?</p><div id="nMedios"></div></div>
-        <div class="fila"><button id="btnExcel" class="sec">Descargar en Excel</button></div>
+      <div class="bloque"><p class="et">¿Voy mejor o peor?</p><p id="nRitmo"></p></div>
+      <div class="bloque"><p class="et">¿Cuándo vendo más?</p><div class="graf" id="nDias"></div><p id="nCuando"></p></div>
+      <div class="bloque"><p class="et">¿Cómo me pagan?</p><div id="nMedios"></div></div>
+      <div class="fila"><button id="btnExcel" class="sec">Descargar en Excel</button></div>
       </details>
-      <details class="interno" id="detCobros" open>
+      <details class="carta" id="detCobros" open>
         <summary><b>Últimos cobros</b><span>Lo último que entró</span></summary>
         <ul id="cobros"></ul>
       </details>
-      <details class="interno" id="detTurnos">
+      <details class="carta" id="detTurnos" open>
         <summary><b>Cierres de turno</b><span>El resumen de cada turno</span></summary>
         <ul id="turnos"></ul>
       </details>
-      <details class="interno">
-        <summary><b>Qué ve tu empleado</b><span>Ocultarle el total vendido</span></summary>
-        <label class="check"><input type="checkbox" id="ocultarTotales"> Ocultarle al empleado el total vendido</label>
-        <p class="ayuda">Ve cada cobro, pero no cuánto se vendió. Vos sí.</p>
-      </details>
-      <details class="interno">
-        <summary><b>Comprobantes con foto</b><span>Cuando la plata tarda en llegar</span></summary>
-        <p class="sub">Si la plata tarda, el empleado le saca foto al comprobante y la caja avisa cuando entra.</p>
-        <label>Puede entregar sin esperar hasta:</label>
-        <div class="pesos"><span>$</span><input id="umbral" type="number" inputmode="numeric"></div>
-        <p class="ayuda">Más que eso, espera a que entre. Con 0 espera siempre.</p>
-        <label>Minutos hasta avisar "NO LLEGÓ":</label>
-        <input id="minutos" type="number" inputmode="numeric">
-        <label>Tus alias o CVU (separados por coma)</label>
-        <input id="cuentas" placeholder="mi.alias.mp, otro.alias">
-        <p class="ayuda">Detecta comprobantes hechos a <b>otra</b> cuenta.</p>
-        <div class="fila"><button id="btnGuardar2">Guardar</button></div>
-      </details>
-      <details class="interno">
-        <summary><b>Este aparato</b><span>Usarlo como caja o cerrar sesión</span></summary>
-        <p class="sub" style="margin:0">Para dejarlo en el mostrador.</p>
-        <div class="fila">
-          <button id="btnModoCaja" class="sec">🧾 Usar este aparato como caja</button>
-          <button id="btnSalir" class="sec">Cerrar sesión</button>
-        </div>
-      </details>
-    </details>
+    </div>
   </section>
 </main>
 
@@ -377,7 +403,11 @@
 
   const rol = { leer: () => { try { return localStorage.getItem('rol'); } catch (e) { return null; } },
     poner: v => { try { v ? localStorage.setItem('rol', v) : localStorage.removeItem('rol'); } catch (e) {} } };
-  function mostrar(id) { ['eleccion', 'ingreso', 'panel', 'nuevaClave'].forEach(s => $(s).classList.toggle('oculto', s !== id)); }
+  function mostrar(id) {
+    ['eleccion', 'ingreso', 'panel', 'nuevaClave'].forEach(s => $(s).classList.toggle('oculto', s !== id));
+    document.querySelector('.tema').classList.toggle('oculto', id === 'panel');
+    $('perfil').classList.toggle('oculto', id !== 'panel');
+  }
 
   // ---------- Recuperar contraseña ----------
   let recuperando = /type=recovery/.test(location.hash);
@@ -419,6 +449,7 @@
         mostrar(rol.leer() === 'dueno' ? 'ingreso' : 'eleccion'); return;
       }
       rol.poner('dueno');
+      emailDueno = session.user?.email || '';
       mostrar('panel');
       let { data } = await sb.from('comercios').select('*').order('creado').limit(1);
       if (!data || !data.length) {
@@ -428,7 +459,7 @@
         if (!data || !data.length) return mensaje('No pude crear el comercio: ' + (r.error?.message || ''), false);
       }
       com = data[0];
-      pintar();
+      pintar(); pintarPerfil();
       refrescar();
       clearInterval(reloj); reloj = setInterval(refrescar, 10000);
     } finally { iniciando = false; }
@@ -451,7 +482,7 @@
     $('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2 });
   }
 
-  let configRevisada = false; // "Tu comercio y Mercado Pago" se abre solo la primera vez si falta configurar
+  let configRevisada = false; // la primera carga decide qué vista mostrar
   async function refrescar() {
     // Los códigos cortos cambian cada vez que se usan: mostrar siempre el vigente
     const { data: cods } = await sb.from('comercios').select('codigo_caja, codigo_android').eq('id', com.id).maybeSingle();
@@ -470,10 +501,16 @@
       li.append(a, b); ulMp.append(li);
     });
     const hay = !!(cuentas && cuentas.length);
+    hayMp = hay;
     if (!configRevisada) {
       configRevisada = true;
       const sinNombre = !(com.nombre || '').trim() || com.nombre === 'Mi comercio';
-      if (sinNombre || !hay) $('detConfig').open = true;
+      let lista = false; try { lista = localStorage.getItem(claveLista()) === '1'; } catch (e) {}
+      // Un comercio ya configurado (por ejemplo, en otro aparato) va directo a "Tu negocio".
+      // Si vuelve de conectar Mercado Pago sin haber tocado "Listo", sigue en Configuración.
+      if (!lista && !sinNombre && hay && !q.has('mp')) { lista = true; try { localStorage.setItem(claveLista(), '1'); } catch (e) {} }
+      primeraVez = !lista;
+      verVista(lista ? 'negocio' : 'config');
     }
     $('btnMp').textContent = hay ? '+ Agregar otra cuenta de Mercado Pago' : 'Conectar con Mercado Pago';
 
@@ -857,15 +894,61 @@
     com = data; mensaje($('ocultarTotales').checked ? 'Listo: la caja ya no muestra los totales del día.' : 'Listo: la caja vuelve a mostrar los totales.');
   };
 
-  $('btnGuardar').onclick = $('btnGuardar2').onclick = async () => {
+  async function guardarDatos() {
     const cambios = {
       nombre: $('nombre').value.trim() || 'Mi comercio',
       mis_cuentas: $('cuentas').value.split(/[,;\n]/).map(s => s.trim()).filter(Boolean),
       umbral: Number($('umbral').value) || 0, minutos_alerta: Math.max(1, Number($('minutos').value) || 15),
     };
     const { data, error } = await sb.from('comercios').update(cambios).eq('id', com.id).select().single();
-    if (error) return mensaje('No pude guardar: ' + error.message, false);
-    com = data; pintar(); mensaje('Guardado.');
+    if (error) { mensaje('No pude guardar: ' + error.message, false); return false; }
+    com = data; pintar(); pintarPerfil(); return true;
+  }
+
+  // ---------- Vistas: Configuración / Tu negocio ----------
+  let primeraVez = false, hayMp = false;
+  const claveLista = () => 'configLista:' + com.id;
+  function verVista(v) {
+    $('vistaConfig').classList.toggle('oculto', v !== 'config');
+    $('vistaNegocio').classList.toggle('oculto', v !== 'negocio');
+    $('configIntro').textContent = primeraVez ? 'Completá estos datos para empezar. Cuando termines, tocá "Listo".' : 'Cambiá lo que necesites y tocá "Guardar".';
+    $('btnListo').textContent = primeraVez ? 'Listo' : 'Guardar';
+    scrollTo(0, 0);
+  }
+  $('btnListo').onclick = async () => {
+    if (!$('nombre').value.trim()) { mensaje('Poné el nombre de tu comercio.', false); $('nombre').focus(); scrollTo(0, 0); return; }
+    if (primeraVez && !hayMp && !confirm('Todavía no conectaste Mercado Pago: la caja no va a ver los cobros. ¿Seguir igual?')) return;
+    if (!await guardarDatos()) return;
+    try { localStorage.setItem(claveLista(), '1'); } catch (e) {}
+    const era = primeraVez; primeraVez = false;
+    verVista('negocio');
+    mensaje(era ? 'Listo, ya está todo configurado.' : 'Guardado.');
+  };
+
+  // ---------- Perfil ----------
+  let emailDueno = '';
+  function pintarPerfil() {
+    const n = com && com.nombre && com.nombre !== 'Mi comercio' ? com.nombre : '';
+    $('perfilNombre').textContent = n || 'Tu comercio';
+    $('perfilEmail').textContent = emailDueno;
+    $('btnPerfil').textContent = (n || emailDueno || '?').trim().charAt(0).toUpperCase();
+  }
+  const cerrarMenu = () => { $('menuPerfil').classList.add('oculto'); $('btnPerfil').setAttribute('aria-expanded', 'false'); };
+  $('btnPerfil').onclick = e => {
+    e.stopPropagation();
+    const abrir = $('menuPerfil').classList.contains('oculto');
+    $('menuPerfil').classList.toggle('oculto', !abrir); $('btnPerfil').setAttribute('aria-expanded', String(abrir));
+  };
+  document.addEventListener('click', e => { if (!e.target.closest('#perfil')) cerrarMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarMenu(); });
+  $('menuPerfil').querySelectorAll('[data-ir]').forEach(b => { b.onclick = () => { cerrarMenu(); verVista(b.dataset.ir); }; });
+  $('menuCaja').onclick = () => { cerrarMenu(); $('btnModoCaja').click(); };
+  $('menuClave').onclick = async () => {
+    cerrarMenu();
+    if (!emailDueno) return;
+    const { error } = await sb.auth.resetPasswordForEmail(emailDueno, { redirectTo: location.origin + location.pathname });
+    if (error) return mensaje('No pude mandar el mail: ' + error.message, false);
+    mensaje('Te mandamos un mail a ' + emailDueno + ' para cambiar la contraseña.');
   };
 
   async function desvincularMp(c) {
@@ -915,9 +998,10 @@
     if (ev === 'SIGNED_IN' && !com) iniciar();
   });
   // Selector de tema
-  $('tema').checked = document.documentElement.classList.contains('oscuro');
-  $('tema').onchange = () => {
-    const oscuro = $('tema').checked;
+  $('tema').checked = $('tema2').checked = document.documentElement.classList.contains('oscuro');
+  $('tema').onchange = $('tema2').onchange = e => {
+    const oscuro = e.target.checked;
+    $('tema').checked = $('tema2').checked = oscuro;
     document.documentElement.classList.toggle('oscuro', oscuro);
     document.querySelector('meta[name=theme-color]').content = oscuro ? '#0f1412' : '#38BDF8';
     try { localStorage.setItem('tema', oscuro ? 'oscuro' : 'celeste'); } catch (e) {}
